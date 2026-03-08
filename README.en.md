@@ -2,85 +2,86 @@
 
 English · [简体中文](README.md)
 
-**Histwrite is a historical writing workflow repository for OpenClaw and other AI agents.**
+**Histwrite is a project-oriented historical writing repository with a content layer, a runner, and an OpenClaw entry point.**
 
-It packages the reusable parts of a historical writing workflow into one public repository:
+It is not a black-box “write my paper for me” system. Instead, it exposes the reusable layers of a historical writing workflow as a public repository:
 
-- reusable templates, rubrics, memory files, and workflow content
-- an executable `histwrite` runner CLI
-- an optional browser relay for authenticated pages, snapshots, and tabs
-- a thin OpenClaw plugin entry point
+- `content/`: writing templates, memory files, rubrics, and workflow material
+- `runner/`: executable commands for project setup, indexing, export, and checking
+- `relay/`: an optional browser relay for authenticated pages, snapshots, and tabs
+- `plugin-openclaw/`: a thin OpenClaw plugin entry point
 
-The goal is simple: help an agent work on a historical writing project as a project, not just generate isolated text. That includes project setup, materials indexing, export, and final checks.
+If you are a history student, the first major section below explains what this repository can do for your writing process.  
+If you are an LLM or agent developer, the second section explains how to read the repository, call commands, and respect its boundaries.
 
-## What It Can Do Today
+---
 
-The current public repository already provides:
+## For History Students
 
-- **Project setup**: create a Histwrite project with a standard directory layout
-- **Library indexing**: scan a materials directory and build searchable output
-- **Relay integration**: inspect relay status and capture browser state
-- **Draft export**: merge project drafts into Markdown output
-- **Final checking**: run `finalcheck` on generated files
-- **Rewrite and evaluation tools**: expose `rewrite`, `judge`, and `doctor`
-- **Content reuse**: let any agent directly consume the files under `content/`
+### What Histwrite Is For You
 
-## Repository Layout
+If your writing process usually looks something like this:
 
-- `content/`: templates, memory, rubrics, style guides, and public workflow content
-- `runner/`: unified command layer for agents and CLI usage
-- `relay/`: optional browser relay and browser extension
-- `plugin-openclaw/`: OpenClaw plugin entry point
-- `docs/`: integration notes, public migration history, and privacy rules
-- `scripts/`: privacy scanning and pre-publish checks
+- define a topic, question, scope, and period
+- build up a folder of PDFs, notes, excerpts, and OCR output
+- slowly connect materials to an outline
+- draft, revise, export, and only then run final checks
 
-## Quick Start
+then Histwrite is meant to serve as a **project workspace for that process**, not a replacement for your judgment.
 
-### 1. Install dependencies
+It is better understood as:
 
-```bash
-pnpm install
-```
+- a standard directory structure for a writing project
+- a reusable set of writing rules and memory files for agents
+- a tool layer for indexing materials, exporting drafts, and checking final output
 
-### 2. Inspect available commands
+At its current public stage, Histwrite is especially useful for:
 
-```bash
-node runner/bin/histwrite.mjs help
-```
+- setting up a paper project
+- organizing `materials / blueprint / outline / draft / export` directories
+- indexing a materials folder for later retrieval
+- using a browser relay when authenticated pages matter
+- exporting the current draft
+- running a final check before handoff or submission
 
-### 3. Initialize a project
+### What You Will Actually Use
 
-```bash
-node runner/bin/histwrite.mjs project init --project ./paper
-```
+If you use Histwrite as a practical writing tool, you will mostly deal with three kinds of things.
 
-### 4. Check project status
+**1. Project directories**
 
-```bash
-node runner/bin/histwrite.mjs project status --project ./paper
-```
+After `project init`, Histwrite creates a standard project layout that includes:
 
-### 5. Index a materials directory
+- `材料/`
+- `蓝图/`
+- `大纲/`
+- `正文/`
+- `导出/`
+- `.histwrite/`
 
-```bash
-node runner/bin/histwrite.mjs library index --project ./paper --materials ./paper/材料
-```
+In practice:
 
-### 6. Check relay status
+- `材料/` is where your source files, OCR results, and indexes live
+- `蓝图/` is where you keep core questions, structure notes, or evidence plans
+- `大纲/` is where your outline lives
+- `正文/` is where active draft files live
+- `导出/` is where exported combined output goes
 
-```bash
-node runner/bin/histwrite.mjs relay status --relay http://127.0.0.1:18792
-```
+**2. Writing rules and reusable content**
 
-### 7. Export a draft
+The `content/` directory holds the public reusable content layer. Important files include:
 
-```bash
-node runner/bin/histwrite.mjs project export --project ./paper
-```
+- `content/templates/style-guide.zh.md`
+- `content/templates/eval-rubric.zh.md`
+- `content/templates/context-handoff.zh.md`
+- `content/templates/learn/memory/`
+- `content/templates/learn/rubrics/`
 
-## Current Runner Commands
+These files act as the baseline instructions for how an agent should write, revise, and judge output quality.
 
-The public runner currently exposes:
+**3. Commands**
+
+The current public version already exposes these stable commands:
 
 - `project init|status|export`
 - `library index|status`
@@ -94,69 +95,217 @@ The public runner currently exposes:
 - `episodes append`
 - `doctor`
 
-More Histwrite commands will continue to move into the runner over time.
+Think of them as project-management and writing-support tools, not as a one-click paper generator.
 
-## Using It With OpenClaw
+### A Realistic Way To Use It
 
-If you use OpenClaw, this repository can act as a plugin entry point.
+A realistic public-repo workflow for a history student looks like this:
 
-The plugin layer is intentionally thin. It only:
+**Step 1: initialize a project**
 
-- receives natural-language or tool calls
-- resolves default project directories and arguments
-- forwards the request to the `histwrite` runner
-- returns structured results
+```bash
+node runner/bin/histwrite.mjs project init --project ./paper
+```
 
-Relevant files:
+**Step 2: place materials into `材料/`**
 
-- `plugin-openclaw/openclaw.plugin.json`
-- `plugin-openclaw/index.ts`
-- `docs/for-openclaw.md`
+Put PDFs, notes, OCR output, and working source files there.
 
-## Using It From Other Agents
+**Step 3: index the materials**
 
-If a host can read repository content, it can already reuse:
+```bash
+node runner/bin/histwrite.mjs library index --project ./paper --materials ./paper/材料
+```
 
-- `content/templates/`
+**Step 4: keep working directories in order**
+
+- put structural notes in `蓝图/` and `大纲/`
+- put draft text in `正文/`
+- enable `relay/` only when browser-authenticated workflows are needed
+
+**Step 5: export and check**
+
+```bash
+node runner/bin/histwrite.mjs project export --project ./paper
+```
+
+Then run `finalcheck` on the resulting output.
+
+### What You Should Not Expect
+
+To set expectations clearly:
+
+- this is **not** yet a fully public one-click autonomous paper-writing system
+- this is **not** a backup repository for your private research archive
+- this public repository does **not** include full-text articles, downloaded archives, or personal research notes
+- this does **not** replace historical interpretation, source criticism, or your own scholarly decisions
+
+The public version is best understood as:
+
+- a project skeleton for historical writing with agents
+- a writing workflow toolbox
+- a public foundation that can grow into a fuller workflow over time
+
+---
+
+## For LLMs / Agents
+
+### What This Repository Actually Is
+
+If you are integrating Histwrite into an agent, do not think of it primarily as “a plugin.” Think of it first as:
+
+- a **content-first** repository
+- a workflow skeleton with a fixed project layout
+- a growing deterministic command surface
+- an optional browser capability component
+
+The most stable public parts right now are:
+
+- the content assets in `content/`
+- the deterministic commands in `runner/`
+- the project layout contract
+- the optional relay integration
+
+### What You Should Read First
+
+If you want to use Histwrite as a rule source or content pack, read these first:
+
+- `content/templates/style-guide.zh.md`
+- `content/templates/eval-rubric.zh.md`
+- `content/templates/context-handoff.zh.md`
 - `content/templates/learn/memory/`
 - `content/templates/learn/rubrics/`
 
-If the host also supports shell or tool execution, it can directly run:
+These provide:
+
+- style constraints
+- quality criteria
+- context handoff conventions
+- default long-term memory scaffolding
+- default evaluation rubrics
+
+Even if the host has no command execution at all, reading these files is already useful.
+
+### How You Should Call It
+
+If the host supports shell or tool execution, prefer the `runner` instead of reimplementing Histwrite-specific filesystem behavior.
+
+Unified entry point:
 
 ```bash
 node runner/bin/histwrite.mjs help
 ```
 
-See:
+The current command surface can be grouped into four categories.
 
-- `docs/for-agents.md`
+**1. Project structure**
 
-## What This Public Repository Does **Not** Include
+- `project init`
+- `project status`
+- `project export`
 
-To keep the public version safe to publish, this repository does **not** include:
+**2. Materials and indexing**
 
-- your private materials, downloaded articles, archives, or research directories
-- personal email addresses, usernames, or private absolute paths
-- institutional library proxy endpoints, browser sessions, cookies, tokens, or API keys
-- the original private Git object history
+- `library index`
+- `library status`
 
-This repository preserves the reusable capabilities, not a personal research archive.
+**3. Browser / relay**
 
-## Privacy and Public History
+- `relay status`
+- `capture`
+- `proxy`
 
-If you want to see how this repository was split from a private workspace, start here:
+**4. Output handling and checking**
 
-- `docs/privacy.md`
-- `docs/history/upstream-timeline.md`
-- `docs/history/upstream-working-tree.md`
+- `export`
+- `finalcheck`
+- `rewrite`
+- `judge`
+- `doctor`
+- `episodes append`
 
-## Status
+A sensible integration order is usually:
 
-Histwrite is now a small public repository that can already be used in several ways:
+1. `project init`
+2. `project status`
+3. `library index`
+4. add `relay` only if needed
+5. `project export` / `export`
+6. `finalcheck`
 
-- as a content repository
-- as a runnable CLI tool
-- as an OpenClaw plugin entry point
-- as an optional relay companion
+### What Project Layout You Should Assume
 
-The next major step is to continue migrating more Histwrite commands into the runner and make the OpenClaw entry point more ergonomic.
+Do not invent your own directory names if you want to work with Histwrite. Prefer the default layout contract used by the runner:
+
+- `材料/`
+- `蓝图/`
+- `大纲/`
+- `正文/`
+- `导出/`
+- `.histwrite/cache`
+- `.histwrite/logs`
+- `.histwrite/learn`
+
+In practice, that means:
+
+- read materials from `材料/`
+- read drafts from `正文/`
+- expect exports in `导出/`
+- expect run traces in `.histwrite/logs`
+- put long-term memory or derived rules in `.histwrite/learn`
+
+### How To Understand the OpenClaw Layer
+
+`plugin-openclaw/` should be treated as a **thin adapter**, not the main business layer.
+
+Its job is to:
+
+- receive calls
+- resolve default project directories
+- turn a command string into runner argv
+- execute the local runner
+- return text output plus structured details
+
+Relevant files:
+
+- `plugin-openclaw/openclaw.plugin.json`
+- `plugin-openclaw/index.ts`
+- `plugin-openclaw/src/runtime.ts`
+
+If you want to support another host later, prefer reusing `content/ + runner/ + relay/` rather than copying OpenClaw-specific logic.
+
+### How To Understand the Relay
+
+`relay/` is an **optional enhancement component**.
+
+Only enable it when you really need:
+
+- authenticated browser pages
+- tab inspection
+- page snapshots
+- browser-derived context capture
+
+If your host does not need browser-authenticated workflows, `content/ + runner/` is enough.
+
+### Boundaries You Must Respect
+
+If you are an agent integrating this repository, assume the following boundaries by default:
+
+- do not treat it as a private research archive
+- do not expect real credentials, cookies, tokens, or API keys in the repository
+- do not assume the original private Git object history is available
+- do not describe unpublished automation as if it were already public and stable
+- do not confuse writing rules in `content/` with research sources or citations
+
+What this repository publishes is the **workflow asset layer and tool layer**, not private research data.
+
+### The Shortest Useful Summary For Agents
+
+If you want the fastest stable integration path, use this order:
+
+1. read `content/`
+2. call `runner`
+3. add `relay` only when authenticated browsing matters
+4. use `plugin-openclaw/` only when the host is OpenClaw
+
+That is the most accurate way to understand Histwrite in its current public form.
