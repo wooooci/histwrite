@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { ensureHistwriteProject } from "./project.js";
+import { ensureHistwriteProject, resolveHistwriteLayout } from "./project.js";
 import { indexMaterials, writeLibraryIndexMarkdown } from "./indexing.js";
 import { createRunLogger } from "./runlog.js";
 import { captureRelaySnapshot } from "./capture.js";
@@ -18,14 +18,18 @@ function usage(exitCode = 0) {
   const msg = [
     "Usage:",
     "  histwrite init --project <dir>",
+    "  histwrite project init|status|export --project <dir>",
     "  histwrite index --project <dir> [--materials <dir>]",
+    "  histwrite library index|status --project <dir> [--materials <dir>]",
     "  histwrite capture --project <dir> [--relay <url>] [--targetId <id>] [--no-png] [--no-text] [--maxChars <n>] [--outDir <dir>]",
+    "  histwrite relay status [--relay <url>]",
     "  histwrite export --project <dir> [--draft <dir>] [--out <path>] [--title <text>]",
     "  histwrite finalcheck --project <dir> --file <path>",
     "  histwrite rewrite --project <dir> --in <path> [--out <path>] [--memory <path>] [--instruction <text>] [--model <id>] [--apiBaseUrl <url>] [--apiKeyEnv <env>] [--opencode] [--opencodeConfig <path>] [--opencodeModel <provider/model>] [--opencodeProvider <provider>] [--endpoint auto|chat|responses] [--timeoutMs <n>] [--maxTokens <n>] [--temperature <n>] [--no-cache]",
     "  histwrite judge --project <dir> --candidatesDir <dir> [--model <id>] [--apiBaseUrl <url>] [--apiKeyEnv <env>] [--opencode] [--opencodeConfig <path>] [--opencodeModel <provider/model>] [--opencodeProvider <provider>] [--rubric <path>] [--sectionId <id>] [--sectionTitle <title>] [--minPassScore <n>] [--endpoint auto|chat|responses] [--timeoutMs <n>] [--maxTokens <n>] [--no-cache]",
     "  histwrite proxy [--listen <host>] [--port <n>] [--model <id>] [--apiBaseUrl <url>] [--apiKeyEnv <env>] [--opencode] [--opencodeConfig <path>] [--opencodeModel <provider/model>] [--opencodeProvider <provider>] [--forceModel] [--timeoutMs <n>] [--cacheDir <dir>]",
     "  histwrite episodes append --project <dir> [--file <path>]",
+    "  histwrite doctor [--project <dir>]",
     "",
     "Run with:",
     "  node --import tsx runner/src/cli.ts <command> ...",
@@ -78,10 +82,145 @@ async function readStdinUtf8(): Promise<string> {
   return chunks.join("");
 }
 
+async function fetchJson(url: string): Promise<unknown> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`request failed: ${res.status} ${res.statusText}`);
+  return await res.json();
+}
+
+async function runProjectInit(projectDir: string) {
+  const layout = await ensureHistwriteProject(projectDir);
+  const logger = await createRunLogger({ logsDir: layout.logsDir });
+  await logger.write("command_start", { cmd: "project init", projectDir: layout.projectDir });
+  console.log(JSON.stringify({ ok: true, projectDir: layout.projectDir, runLog: logger.path }));
+  await logger.write("command_end", { ok: true });
+  process.exit(0);
+}
+
+async function runProjectStatus(projectDir: string) {
+  const layout = resolveHistwriteLayout(projectDir);
+  const check = async (target: string) => await fs.access(target).then(() => true).catch(() => false);
+  console.log(
+    JSON.stringify({
+      ok: true,
+      projectDir: layout.projectDir,
+      materialsDir: layout.materialsDir,
+      blueprintDir: layout.blueprintDir,
+      outlineDir: layout.outlineDir,
+      draftDir: layout.draftDir,
+      exportDir: layout.exportDir,
+      metaDir: layout.metaDir,
+      exists: {
+        materialsDir: await check(layout.materialsDir),
+        blueprintDir: await check(layout.blueprintDir),
+        outlineDir: await check(layout.outlineDir),
+        draftDir: await check(layout.draftDir),
+        exportDir: await check(layout.exportDir),
+      },
+    }),
+  );
+  process.exit(0);
+}
+
+async function runProjectExport(projectDir: string) {
+  const layout = await ensureHistwriteProject(projectDir);
+  const logger = await createRunLogger({ logsDir: layout.logsDir });
+  await logger.write("command_start", { cmd: "project export", projectDir: layout.projectDir });
+  const draftDir = readArg("--draft") ?? layout.draftDir;
+  const outPath = readArg("--out") ?? path.join(layout.exportDir, "draft.md");
+  const title = readArg("--title") ?? "草稿汇总";
+  await logger.write("export_begin", { draftDir: path.resolve(draftDir), outPath: path.resolve(outPath) });
+  const result = await exportDraftMarkdown({ layout, draftDir, outPath, title });
+  await logger.write("export_done", { outPath: result.outPath, files: result.inputFiles.length });
+  console.log(JSON.stringify({ ok: true, projectDir: layout.projectDir, outPath: result.outPath, inputFiles: result.inputFiles.map((f) => ({ path: f.path, bytes: f.bytes })), runLog: logger.path }));
+  await logger.write("command_end", { ok: true });
+  process.exit(0);
+}
+
+async function runLibraryIndex(projectDir: string) {
+  const layout = await ensureHistwriteProject(projectDir);
+  const logger = await createRunLogger({ logsDir: layout.logsDir });
+  await logger.write("command_start", { cmd: "library index", projectDir: layout.projectDir });
+  const materialsDir = readArg("--materials") ?? layout.materialsDir;
+  await logger.write("index_begin", { materialsDir: path.resolve(materialsDir) });
+  const library = await indexMaterials({ layout, materialsDir });
+  await logger.write("index_done", { count: library.materials.length });
+  const mdPath = await writeLibraryIndexMarkdown({ layout, library });
+  await logger.write("library_index_written", { path: mdPath });
+  console.log(JSON.stringify({ ok: true, projectDir: layout.projectDir, materialsDir: path.resolve(materialsDir), count: library.materials.length, libraryIndexMarkdown: mdPath, runLog: logger.path }));
+  await logger.write("command_end", { ok: true });
+  process.exit(0);
+}
+
+async function runLibraryStatus(projectDir: string) {
+  const layout = resolveHistwriteLayout(projectDir);
+  const libraryPath = path.join(layout.materialsIndexDir, "library.json");
+  let indexed = false;
+  let count = 0;
+  try {
+    const parsed = JSON.parse(await fs.readFile(libraryPath, "utf8")) as { materials?: unknown[] };
+    indexed = true;
+    count = Array.isArray(parsed.materials) ? parsed.materials.length : 0;
+  } catch {
+    indexed = false;
+  }
+  console.log(JSON.stringify({ ok: true, projectDir: layout.projectDir, materialsDir: layout.materialsDir, indexDir: layout.materialsIndexDir, libraryPath, indexed, count }));
+  process.exit(0);
+}
+
+async function runRelayStatus(relayBaseUrl: string) {
+  const baseUrl = relayBaseUrl.replace(/\/$/, "");
+  const [status, tabs] = await Promise.all([
+    fetchJson(`${baseUrl}/extension/status`) as Promise<{ connected?: boolean }>,
+    fetchJson(`${baseUrl}/tabs`).catch(() => []) as Promise<unknown>,
+  ]);
+  console.log(JSON.stringify({ ok: true, relayBaseUrl: baseUrl, connected: Boolean(status?.connected), tabs }));
+  process.exit(0);
+}
+
+async function runDoctor(projectDir: string) {
+  const layout = resolveHistwriteLayout(projectDir);
+  const checks = {
+    projectDir: layout.projectDir,
+    materialsDir: await fs.access(layout.materialsDir).then(() => true).catch(() => false),
+    blueprintDir: await fs.access(layout.blueprintDir).then(() => true).catch(() => false),
+    draftDir: await fs.access(layout.draftDir).then(() => true).catch(() => false),
+  };
+  console.log(JSON.stringify({ ok: true, checks }));
+  process.exit(0);
+}
+
 const args = process.argv.slice(2);
 const cmd = args[0] ?? "";
+const sub = args[1] ?? "";
 
 if (!cmd || cmd === "--help" || cmd === "-h" || cmd === "help") usage(0);
+
+if (cmd === "project") {
+  const projectDir = readArg("--project") ?? process.cwd();
+  if (sub === "init") await runProjectInit(projectDir);
+  if (sub === "status") await runProjectStatus(projectDir);
+  if (sub === "export") await runProjectExport(projectDir);
+  usage(2);
+}
+
+if (cmd === "library") {
+  const projectDir = readArg("--project") ?? process.cwd();
+  if (sub === "index") await runLibraryIndex(projectDir);
+  if (sub === "status") await runLibraryStatus(projectDir);
+  usage(2);
+}
+
+if (cmd === "relay") {
+  const relayBaseUrl = readArg("--relay") ?? "http://127.0.0.1:18792";
+  if (sub === "status") await runRelayStatus(relayBaseUrl);
+  usage(2);
+}
+
+if (cmd === "doctor") {
+  const projectDir = readArg("--project") ?? process.cwd();
+  await runDoctor(projectDir);
+}
 
 if (cmd === "init") {
   const projectDir = readArg("--project") ?? process.cwd();
