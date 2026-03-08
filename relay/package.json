@@ -1,0 +1,14 @@
+{
+  "name": "@histwrite/relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone browser relay and Chrome extension for Histwrite.",
+  "dependencies": {
+    "ws": "^8.18.3"
+  },
+  "scripts": {
+    "start": "node --import tsx index.ts",
+    "test": "vitest run"
+  }
+}

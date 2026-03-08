@@ -1,0 +1,17 @@
+{
+  "name": "@histwrite/runner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Histwrite unified runner (project, library, export, judge, rewrite, finalcheck).",
+  "bin": {
+    "histwrite": "./bin/histwrite.mjs"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "undici": "^7.16.0"
+  },
+  "scripts": {
+    "test": "vitest run"
+  }
+}

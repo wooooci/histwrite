@@ -1,0 +1,15 @@
+{
+  "id": "histwrite",
+  "name": "Histwrite",
+  "description": "Content-first Histwrite plugin for OpenClaw. Delegates deterministic commands to the local runner.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "nodeBin": { "type": "string", "description": "Node executable used to invoke the runner (default: node)." },
+      "runnerEntry": { "type": "string", "description": "Path to runner CLI entry. Defaults to ../runner/src/cli.ts." },
+      "defaultProjectDir": { "type": "string", "description": "Optional default project directory passed to runner commands." },
+      "relayBaseUrl": { "type": "string", "description": "Optional default relay base URL for capture-like commands." }
+    }
+  }
+}

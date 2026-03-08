@@ -10,7 +10,13 @@
     "relay"
   ],
   "scripts": {
-    "privacy:scan": "bash scripts/privacy-scan.sh"
+    "privacy:scan": "bash scripts/privacy-scan.sh",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   }
 }
-
