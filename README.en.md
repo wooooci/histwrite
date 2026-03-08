@@ -2,34 +2,37 @@
 
 English · [简体中文](README.md)
 
-Histwrite is a **content-first** historical writing workflow repository. It is designed primarily for **OpenClaw**, while also making the underlying content and command surface reusable by other AI agents that can read a repository, call shell commands, or invoke tools.
+**Histwrite is a historical writing workflow repository for OpenClaw and other AI agents.**
 
-It is not just a prompt pack, and it is not a heavy plugin tied to a single host. Instead, it keeps the content layer, command layer, and optional browser capabilities in one public-ready repository.
+It packages the reusable parts of a historical writing workflow into one public repository:
 
-## What It Includes
+- reusable templates, rubrics, memory files, and workflow content
+- an executable `histwrite` runner CLI
+- an optional browser relay for authenticated pages, snapshots, and tabs
+- a thin OpenClaw plugin entry point
 
-Histwrite is organized into four main parts:
+The goal is simple: help an agent work on a historical writing project as a project, not just generate isolated text. That includes project setup, materials indexing, export, and final checks.
 
-- `content/`: public templates, memory files, rubrics, style guides, and workflow material
-- `runner/`: a unified command layer with deterministic actions that agents can call
-- `relay/`: an optional browser relay for authenticated pages, snapshots, and tab inspection
-- `plugin-openclaw/`: a thin OpenClaw plugin entry point
+## What It Can Do Today
 
-This supports two main usage modes:
+The current public repository already provides:
 
-1. **Read the content**: directly consume templates, rubrics, memory, and workflow notes in `content/`
-2. **Run commands**: use the `histwrite` runner for project setup, library indexing, snapshots, export, and checking
+- **Project setup**: create a Histwrite project with a standard directory layout
+- **Library indexing**: scan a materials directory and build searchable output
+- **Relay integration**: inspect relay status and capture browser state
+- **Draft export**: merge project drafts into Markdown output
+- **Final checking**: run `finalcheck` on generated files
+- **Rewrite and evaluation tools**: expose `rewrite`, `judge`, and `doctor`
+- **Content reuse**: let any agent directly consume the files under `content/`
 
-## Why It Is Structured This Way
+## Repository Layout
 
-This repository intentionally keeps a **content-first, tools-second** shape:
-
-- For many agents, the content alone is already useful
-- For agents with execution support, the `histwrite` runner adds a stable command surface
-- For workflows that need authenticated browsing, `relay/` can be enabled on demand
-- For OpenClaw users, the plugin is the default entry point
-
-In short, **OpenClaw is the primary entry point, not the only one**.
+- `content/`: templates, memory, rubrics, style guides, and public workflow content
+- `runner/`: unified command layer for agents and CLI usage
+- `relay/`: optional browser relay and browser extension
+- `plugin-openclaw/`: OpenClaw plugin entry point
+- `docs/`: integration notes, public migration history, and privacy rules
+- `scripts/`: privacy scanning and pre-publish checks
 
 ## Quick Start
 
@@ -39,28 +42,28 @@ In short, **OpenClaw is the primary entry point, not the only one**.
 pnpm install
 ```
 
-### 2. Inspect runner commands
+### 2. Inspect available commands
 
 ```bash
 node runner/bin/histwrite.mjs help
 ```
 
-### 3. Initialize a Histwrite project
+### 3. Initialize a project
 
 ```bash
-node runner/bin/histwrite.mjs project init --project ./demo-project
+node runner/bin/histwrite.mjs project init --project ./paper
 ```
 
 ### 4. Check project status
 
 ```bash
-node runner/bin/histwrite.mjs project status --project ./demo-project
+node runner/bin/histwrite.mjs project status --project ./paper
 ```
 
 ### 5. Index a materials directory
 
 ```bash
-node runner/bin/histwrite.mjs library index --project ./demo-project --materials ./demo-project/材料
+node runner/bin/histwrite.mjs library index --project ./paper --materials ./paper/材料
 ```
 
 ### 6. Check relay status
@@ -69,16 +72,40 @@ node runner/bin/histwrite.mjs library index --project ./demo-project --materials
 node runner/bin/histwrite.mjs relay status --relay http://127.0.0.1:18792
 ```
 
-## Using Histwrite From Different Hosts
+### 7. Export a draft
 
-### OpenClaw
+```bash
+node runner/bin/histwrite.mjs project export --project ./paper
+```
 
-OpenClaw can use this repository through the thin plugin layer. The plugin is responsible for:
+## Current Runner Commands
 
-- receiving natural-language or tool-based requests
-- resolving default project directories and runner arguments
-- delegating to the `histwrite` runner
-- returning structured results
+The public runner currently exposes:
+
+- `project init|status|export`
+- `library index|status`
+- `capture`
+- `relay status`
+- `export`
+- `finalcheck`
+- `rewrite`
+- `judge`
+- `proxy`
+- `episodes append`
+- `doctor`
+
+More Histwrite commands will continue to move into the runner over time.
+
+## Using It With OpenClaw
+
+If you use OpenClaw, this repository can act as a plugin entry point.
+
+The plugin layer is intentionally thin. It only:
+
+- receives natural-language or tool calls
+- resolves default project directories and arguments
+- forwards the request to the `histwrite` runner
+- returns structured results
 
 Relevant files:
 
@@ -86,52 +113,50 @@ Relevant files:
 - `plugin-openclaw/index.ts`
 - `docs/for-openclaw.md`
 
-### Other Agents
+## Using It From Other Agents
 
-Any host that can read repository content can at least reuse:
+If a host can read repository content, it can already reuse:
 
 - `content/templates/`
 - `content/templates/learn/memory/`
 - `content/templates/learn/rubrics/`
 
-If the host also supports shell or tool execution, it can call commands from `runner/` directly.
+If the host also supports shell or tool execution, it can directly run:
 
-See also:
+```bash
+node runner/bin/histwrite.mjs help
+```
+
+See:
 
 - `docs/for-agents.md`
 
-## Repository Layout
+## What This Public Repository Does **Not** Include
 
-- `content/`: public content layer
-- `runner/`: unified CLI / tool command layer
-- `relay/`: enhanced browser capabilities
-- `plugin-openclaw/`: OpenClaw plugin entry point
-- `docs/`: integration notes, migration history, privacy rules, planning docs
-- `scripts/`: privacy scanning and pre-publish checks
+To keep the public version safe to publish, this repository does **not** include:
 
-## Privacy Boundary
+- your private materials, downloaded articles, archives, or research directories
+- personal email addresses, usernames, or private absolute paths
+- institutional library proxy endpoints, browser sessions, cookies, tokens, or API keys
+- the original private Git object history
 
-This repository treats **private information removal** as a hard requirement:
+This repository preserves the reusable capabilities, not a personal research archive.
 
-- no personal email addresses, usernames, or private absolute paths
-- no institutional library proxy endpoints, browser sessions, cookies, tokens, or API keys
-- no privately collected materials, full-text articles, downloaded archives, or personal research directories
-- no direct publication of the original private Git object history; the public repository uses a rebuilt safe commit chain instead
+## Privacy and Public History
 
-See:
+If you want to see how this repository was split from a private workspace, start here:
 
 - `docs/privacy.md`
 - `docs/history/upstream-timeline.md`
 - `docs/history/upstream-working-tree.md`
 
-## Current Status
+## Status
 
-The public repository already includes:
+Histwrite is now a small public repository that can already be used in several ways:
 
-- public content templates and rubrics
-- an executable `histwrite` runner
-- an optional browser relay
-- a thin OpenClaw plugin entry point
-- baseline privacy scanning and test coverage
+- as a content repository
+- as a runnable CLI tool
+- as an OpenClaw plugin entry point
+- as an optional relay companion
 
-Next steps are to continue moving more Histwrite commands into the runner and make the OpenClaw plugin a more ergonomic natural-language entry point.
+The next major step is to continue migrating more Histwrite commands into the runner and make the OpenClaw entry point more ergonomic.
