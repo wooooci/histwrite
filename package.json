@@ -1,0 +1,16 @@
+{
+  "name": "histwrite",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Content-first Histwrite repository with OpenClaw plugin, runner, and optional browser relay.",
+  "workspaces": [
+    "plugin-openclaw",
+    "runner",
+    "relay"
+  ],
+  "scripts": {
+    "privacy:scan": "bash scripts/privacy-scan.sh"
+  }
+}
+

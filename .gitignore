@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+.DS_Store
+.env
+.env.*
+.local/
+.histwrite/cache/
+.histwrite/logs/
+.histwrite/sessions/
+*.log
+*.tmp
+
