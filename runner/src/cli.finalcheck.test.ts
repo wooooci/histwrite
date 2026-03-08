@@ -33,7 +33,7 @@ describe("histwrite runner cli finalcheck", () => {
       "utf8",
     );
 
-    const cliPath = path.resolve("src/cli.ts");
+    const cliPath = path.resolve("runner/src/cli.ts");
     const { stdout } = await execFileAsync(process.execPath, [
       "--import",
       "tsx",
