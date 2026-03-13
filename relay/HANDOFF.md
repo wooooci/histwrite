@@ -4,6 +4,11 @@
 
 ## 本轮新增进展
 
+- 已修 `platform matrix --no-resolve-landing` 的一个控制面漏口：
+  - richer CSV backfill 分支过去仍会继续 resolve `ddm` landing
+  - 现在在 `runner/src/cli.ts` 中，当显式传入 `--no-resolve-landing` 时，会让 backfill 分支保持纯离线，不再偷偷走 live relay
+- `runner/src/cli.platform-matrix.test.ts` 现已不再额外放宽单测超时预算；当前矩阵链路在默认测试预算内可完成
+
 - 已把 **repo-local** 的 raw CDP 重附着 helper 迁入当前仓：
   - `runner/src/scanners/cdp.ts`
   - `runner/src/scanners/cdp-target-rebind.ts`
@@ -187,14 +192,17 @@
 - 已新增统一 vendor landing resolver：
   - 新增：`runner/src/platform/vendor-landing.ts`
   - 新增：`runner/src/platform/vendor-landing.test.ts`
-  - `platform matrix` 现在默认会对 UMich `ddm.dnd.lib.umich.edu/database/link/*` 做一次**不跟随跳转的 GET**
-  - 当前解析策略：
-    - 先读 `302 Location`
-    - 如果没有 `Location`，再退回解析 `meta refresh`
-    - 对 `proxy.lib.umich.edu/login?qurl=...` / `?url=...` 自动解出 vendor URL
+  - 当前默认口径已切为 **relay-first / CDP-first**
+  - `platform matrix` 现在默认会对 UMich `ddm.dnd.lib.umich.edu/database/link/*` 走：
+    - `ws://127.0.0.1:18992/cdp`
+    - `Target.createTarget(about:blank) -> Page.navigate(ddm permalink) -> 轮询 location.href / target 列表`
+    - 命中 `proxy.lib.umich.edu/login?qurl=...` 或最终 vendor URL 后，再统一归一化
+  - 仍保留的纯字符串能力只有：
+    - 对已拿到的 `proxy.lib.umich.edu/login?qurl=...` / `?url=...` 自动解出 vendor URL
     - 自动清理 `&amp;` / `amp%3B` 这类编码残留
   - 说明：
     - CLI 现在支持 `--no-resolve-landing`，测试里已显式关闭；真实跑矩阵时默认开启
+    - resolver 并发已收紧到 `1`，避免批量 matrix 时同时开太多 relay tab
 - 平台识别/匹配口径已收紧到**高精度优先**：
   - `resolvePlatformFromHostOrName()` 现在区分 host 命中与 name 命中
   - `gale` 已改成词边界/token 识别，不再把 `Egale` 误判成 Gale
@@ -209,19 +217,19 @@
   - `材料/_index/umich_platform_matrix.json`
   - `材料/_index/umich_platform_matrix.tsv`
   - `材料/_index/umich_platform_matrix.md`
-  - 最近一次生成时间：`2026-03-13T04:22:29.257Z`
+  - 最近一次生成时间：`2026-03-13T06:59:24.764Z`
   - 当前 `rowCount=1145`
   - 当前平台分布：
-    - `fallback=1013`
-    - `gale=73`
-    - `proquest=37`
-    - `adammatthew=19`
+    - `fallback=1023`
+    - `gale=66`
+    - `proquest=44`
+    - `adammatthew=9`
     - `jstor=2`
     - `hathitrust=1`
   - 当前状态分布：
-    - `manual_required=1003`
-    - `planned=142`
-  - 当前 `landingHost != ddm.dnd.lib.umich.edu` 的已解析 vendor landing 行数：`142`
+    - `manual_required=980`
+    - `planned=165`
+  - 当前 `landingHost != ddm.dnd.lib.umich.edu` 且已落到 vendor / vendor proxy host 的行数：`165`
   - 已确认的关键样本：
     - `Gale in Context: World History -> http://find.galegroup.com/menu/start?... -> find.galegroup.com -> gale`
     - `ProQuest History Vault -> https://www.proquest.com/hvhistoryvault?accountid=14667 -> www.proquest.com -> proquest`
@@ -238,6 +246,91 @@
       - `proquest 37`
       - `adammatthew 19`
       - `jstor 2`
+
+## 2026-03-13 新增：平台解析分类面
+
+- 已把 richer UMich CSV 解析能力迁入当前仓：
+  - `runner/src/platform/umich-csv.ts`
+  - `runner/src/platform/umich-csv.test.ts`
+- 已把“矩阵行 -> 实施分类 bucket”能力迁入当前仓：
+  - `runner/src/platform/classification.ts`
+  - `runner/src/platform/classification.test.ts`
+- 已把平台分类入口接进 CLI：
+  - `runner/src/cli.ts`
+  - `runner/src/cli.platform-classify.test.ts`
+- 新命令：
+  - `node --import tsx runner/src/cli.ts platform classify --project /Users/woooci/Downloads/histwrite --umich-csv "/Users/woooci/Documents/Obsidian Vault/clawdbot/skill-outputs/umich/umich_history_databases.csv"`
+- 新产物：
+  - `材料/_index/umich_platform_resolution_classification.json`
+  - `材料/_index/umich_platform_resolution_classification.tsv`
+  - `材料/_index/umich_platform_resolution_classification.md`
+- 当前真实分类统计（基于最新矩阵，2026-03-13）：
+  - `matched_high_confidence=140`
+  - `matched_needs_review=19`
+  - `csv_vendor_hint=0`
+  - `public_open_access=6`
+  - `umich_direct_search=968`
+  - `manual_backlog=12`
+- 当前已确认的 `matched_needs_review` 代表坏例子：
+  - `NATO -> Rise and Fall of Senator Joseph R. McCarthy`
+  - `Cambodia: Records ... -> Colombia: Records ...`
+  - `The Civil War -> World War II, Occupation, and the Civil War in Greece 1940-1949`
+- 当前已确认的 `public_open_access` 代表样本：
+  - `HathiTrust Digital Library`
+  - `Digital Collections, Library of Congress`
+  - `Perseus Digital Library`
+  - `Images from the History of Medicine`
+- 当前已确认的 `csv_vendor_hint` 代表样本：
+  - `ProQuest Research Library (PRL) -> ProQuest Research Library -> ddm 9851`
+  - `Journal Storage (JSTOR) -> JSTOR -> ddm 8235`
+  - `Romanticism: Life, Literature and Landscape -> ddm 31593`
+  - `World History in Context ... -> ddm 46062`
+- 上面这批 richer CSV vendor hint 已在本轮接回 `platform matrix` 主链，不再只是 classification 报告旁路：
+  - `ProQuest Research Library (PRL)` 已回填为 `planned/proquest`
+  - `Journal Storage (JSTOR)` 已回填为 `planned/jstor`
+  - `World History in Context ...` 已回填为 `planned/gale`
+  - `HathiTrust Digital Library` 已保持 `planned/hathitrust`
+- 额外现实约束已确认：
+  - `search.lib.umich.edu/databases` 不能指望走裸 HTTP direct search
+  - 2026-03-13 实测：
+    - `curl -I 'https://search.lib.umich.edu/databases?search=JSTOR'`
+    - 返回：`HTTP/2 403`
+    - 响应头含：`cf-mitigated: challenge`
+  - 这意味着后续 `umich_direct_search` 类 resolver 必须走**浏览器态**
+  - 同时 `vendor landing resolve` 也已统一收口到 relay/CDP，不再默认走裸 HTTP
+  - 优先复用当前 relay `18992` + 当前 Chrome 登录态
+- 本轮 relay-first vendor-landing 回归：
+  - `pnpm exec vitest run runner/src/platform/contract.test.ts runner/src/platform/vendor-landing.test.ts runner/src/platform/matrix.test.ts runner/src/platform/umich-csv.test.ts runner/src/platform/classification.test.ts runner/src/cli.platform-matrix.test.ts runner/src/cli.platform-classify.test.ts runner/src/cli.sources.test.ts`
+    - 结果：`8 files passed`, `29 tests passed`
+- 本轮矩阵主链新能力：
+  - `platform matrix` 已支持额外参数：
+    - `--umich-csv <path>`
+  - richer CSV 会直接参与主矩阵构建，不再只用于 classification
+  - 当 relay/CDP `Page.navigate` 单条超时：
+    - 当前口径改为**仅回退该 hit 未解析**
+    - 不再让整批 `platform matrix` 构建失败
+  - 当前全量 vendor landing resolve 并发口径：
+    - `concurrency=4`
+- 本轮 live 尝试结果：
+  - `node --import tsx runner/src/cli.ts relay status --relay http://127.0.0.1:18992`
+    - 旧状态曾返回：`connected=false`
+    - 当前 fresh 状态已返回：`connected=true`
+  - fresh relay-only vendor landing live 样本：
+    - `ddm 46062 -> https://go-gale-com.proxy.lib.umich.edu/ps/start.do?p=WHIC&u=umuser`
+    - `ddm 9851 -> https://www-proquest-com.proxy.lib.umich.edu/intermediateredirectforezproxy`
+    - `ddm 8235 -> https://www-jstor-org.proxy.lib.umich.edu/`
+    - `ddm 10197 -> https://www.hathitrust.org/`
+  - fresh 全量正式矩阵重建：
+    - 命令：`node --import tsx runner/src/cli.ts platform matrix --project /Users/woooci/Downloads/histwrite --guide-json "...world_history_db_guide_appendix2.json" --umich-json "...umich_history_us_history_databases_raw.json" --umich-csv "...umich_history_databases.csv"`
+    - 成功返回：`rowCount=1145`
+- 已新增人工说明文档：
+  - `docs/plans/2026-03-13-histwrite-platform-resolution-classification.md`
+- 本轮 fresh 回归：
+  - `pnpm exec vitest run runner/src/platform/umich-csv.test.ts runner/src/platform/classification.test.ts runner/src/cli.platform-classify.test.ts`
+    - 结果：`3 files passed`, `9 tests passed`
+- 本轮 fresh 真实命令验证：
+  - `node --import tsx runner/src/cli.ts platform classify --project /Users/woooci/Downloads/histwrite --umich-csv "/Users/woooci/Documents/Obsidian Vault/clawdbot/skill-outputs/umich/umich_history_databases.csv"`
+    - 成功返回：`rowCount=1145`
       - `hathitrust 1`
 
 ## 当前结论

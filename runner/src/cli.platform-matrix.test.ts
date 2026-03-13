@@ -184,4 +184,65 @@ describe("histwrite runner cli platform matrix", () => {
       },
     ]);
   });
+
+  it("can backfill unmatched guide rows from richer UMich csv input", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "histwrite-runner-platform-matrix-csv-"));
+    const guideJson = path.join(root, "guide.json");
+    const umichJson = path.join(root, "umich.json");
+    const umichCsv = path.join(root, "umich.csv");
+
+    await fs.writeFile(
+      guideJson,
+      `${JSON.stringify([{ guideName: "ProQuest Research Library (PRL)" }], null, 2)}\n`,
+      "utf8",
+    );
+    await fs.writeFile(umichJson, `${JSON.stringify([], null, 2)}\n`, "utf8");
+    await fs.writeFile(
+      umichCsv,
+      `title,platform,vendor_hint,company_guess,ddm_link,access_type
+"ProQuest Research Library","ProQuest",,"ProQuest (Clarivate)","https://ddm.dnd.lib.umich.edu/database/link/9851","Authorized U-M users (+ guests in U-M Libraries)"
+`,
+      "utf8",
+    );
+
+    const cliPath = fileURLToPath(new URL("./cli.ts", import.meta.url));
+    const { stdout } = await execFileAsync(process.execPath, [
+      "--import",
+      "tsx",
+      cliPath,
+      "platform",
+      "matrix",
+      "--project",
+      root,
+      "--guide-json",
+      guideJson,
+      "--umich-json",
+      umichJson,
+      "--umich-csv",
+      umichCsv,
+      "--no-resolve-landing",
+    ]);
+
+    const parsed = JSON.parse(stdout.trim()) as {
+      ok: boolean;
+      rowCount: number;
+      jsonPath: string;
+    };
+
+    expect(parsed.ok).toBe(true);
+    expect(parsed.rowCount).toBe(1);
+
+    const matrixJson = JSON.parse(await fs.readFile(parsed.jsonPath, "utf8")) as {
+      rows: Array<{ guideName: string; platform: string; umichHit: string | null; status: string }>;
+    };
+
+    expect(matrixJson.rows).toMatchObject([
+      {
+        guideName: "ProQuest Research Library (PRL)",
+        platform: "proquest",
+        umichHit: "ProQuest Research Library",
+        status: "planned",
+      },
+    ]);
+  });
 });

@@ -169,7 +169,7 @@ async function runPlatformMatrix(projectDir: string) {
     ? matchedRows
     : await backfillPlatformMatrixRowsFromCatalog(matchedRows, catalogRows, {
         resolveHit: hasFlag("--no-resolve-landing")
-          ? undefined
+          ? async (hit) => hit
           : async (hit) => await hydrateUmichHitsWithVendorLanding([hit]).then((items) => items[0] ?? hit),
       });
 
