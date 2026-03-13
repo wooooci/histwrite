@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "sections": [
+    {
+      "sectionId": "s1",
+      "title": "1902年前后地方财政调整的启动逻辑",
+      "timeWindow": {
+        "start": "1901",
+        "end": "1904"
+      },
+      "textWindow": {
+        "topic": "地方财政调整的启动"
+      },
+      "keywords": [
+        "财政",
+        "旧欠",
+        "库款",
+        "盐课",
+        "新章"
+      ],
+      "mustIncludeCardIds": [
+        "c1",
+        "c2",
+        "c3",
+        "c4",
+        "c6"
+      ],
+      "maxCards": 5,
+      "maxQa": 3
+    }
+  ]
+}

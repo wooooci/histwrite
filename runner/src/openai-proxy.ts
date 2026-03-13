@@ -5,6 +5,7 @@ import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { normalizeOpenAiCompatBaseUrl } from "./openai-compat.js";
 import { cacheKey, createCasCache } from "./cache.js";
 import type { CasCache } from "./cache.js";
+import { SchedulerHttpError, createProviderScheduler, type SchedulerPriority } from "./infra/scheduler.js";
 
 export type OpenAiCompatProxyConfig = {
   listenHost: string;
@@ -15,6 +16,14 @@ export type OpenAiCompatProxyConfig = {
   forceModel?: boolean;
   timeoutMs?: number;
   cacheDir?: string;
+  scheduler?: {
+    provider?: string;
+    maxConcurrency?: number;
+    maxRetries?: number;
+    baseDelayMs?: number;
+    maxDelayMs?: number;
+    jitterRatio?: number;
+  };
 };
 
 function setCors(res: ServerResponse) {
@@ -131,7 +140,7 @@ async function callUpstreamResponses(params: {
     const contentType = String(res.headers.get("content-type") ?? "");
     const raw = await res.text();
     if (!res.ok) {
-      throw new Error(`upstream responses HTTP ${res.status}: ${raw.slice(0, 500)}`);
+      throw new SchedulerHttpError(res.status, `upstream responses HTTP ${res.status}: ${raw.slice(0, 500)}`);
     }
     if (!raw.trim()) throw new Error("upstream responses HTTP 200: empty body");
 
@@ -182,8 +191,10 @@ async function handleChatCompletions(params: {
   config: OpenAiCompatProxyConfig;
   body: any;
   cache: CasCache | null;
+  scheduler: ReturnType<typeof createProviderScheduler>;
+  schedulerProvider: string;
 }) {
-  const { req, res, config, body, cache } = params;
+  const { req, res, config, body, cache, scheduler, schedulerProvider } = params;
   const created = Math.floor(Date.now() / 1000);
   const chatId = `chatcmpl_${randomUUID().replaceAll("-", "")}`;
   const temperature = typeof body?.temperature === "number" && Number.isFinite(body.temperature) ? body.temperature : 0;
@@ -216,11 +227,13 @@ async function handleChatCompletions(params: {
 
   const stream = Boolean(body?.stream);
   const timeoutMs = Math.max(1000, config.timeoutMs ?? 60_000);
+  const priority = readSchedulerPriority(req, body);
 
   const promptVersion = "openai_proxy_chat_to_responses_v1";
   const upstreamNormalized = normalizeOpenAiCompatBaseUrl(config.upstreamBaseUrl);
   const makeKey = (modelForKey: string) =>
     cacheKey({
+      taskName: "openai_proxy_chat_to_responses",
       model: modelForKey,
       promptVersion,
       inputs: {
@@ -240,14 +253,19 @@ async function handleChatCompletions(params: {
       upstreamText = cached.text;
       upstreamModelUsed = typeof cached.model === "string" ? cached.model : primaryModel;
     } else {
-      const out1 = await callUpstreamResponses({
-        upstreamBaseUrl: config.upstreamBaseUrl,
-        upstreamApiKey: config.upstreamApiKey,
-        model: primaryModel,
-        input,
-        temperature,
-        maxOutputTokens: maxTokens,
-        timeoutMs,
+      const out1 = await scheduler.schedule({
+        provider: schedulerProvider,
+        priority,
+        run: async () =>
+          await callUpstreamResponses({
+            upstreamBaseUrl: config.upstreamBaseUrl,
+            upstreamApiKey: config.upstreamApiKey,
+            model: primaryModel,
+            input,
+            temperature,
+            maxOutputTokens: maxTokens,
+            timeoutMs,
+          }),
       });
       upstreamText = out1.text;
       upstreamModelUsed = out1.model;
@@ -264,14 +282,19 @@ async function handleChatCompletions(params: {
           upstreamText = cached2.text;
           upstreamModelUsed = typeof cached2.model === "string" ? cached2.model : defaultModel;
         } else {
-          const out2 = await callUpstreamResponses({
-            upstreamBaseUrl: config.upstreamBaseUrl,
-            upstreamApiKey: config.upstreamApiKey,
-            model: defaultModel,
-            input,
-            temperature,
-            maxOutputTokens: maxTokens,
-            timeoutMs,
+          const out2 = await scheduler.schedule({
+            provider: schedulerProvider,
+            priority,
+            run: async () =>
+              await callUpstreamResponses({
+                upstreamBaseUrl: config.upstreamBaseUrl,
+                upstreamApiKey: config.upstreamApiKey,
+                model: defaultModel,
+                input,
+                temperature,
+                maxOutputTokens: maxTokens,
+                timeoutMs,
+              }),
           });
           upstreamText = out2.text;
           upstreamModelUsed = out2.model;
@@ -342,6 +365,34 @@ async function handleChatCompletions(params: {
   res.end(`${JSON.stringify(response)}\n`);
 }
 
+function inferSchedulerProvider(config: OpenAiCompatProxyConfig): string {
+  const explicit = config.scheduler?.provider?.trim();
+  if (explicit) return explicit;
+  try {
+    const normalized = normalizeOpenAiCompatBaseUrl(config.upstreamBaseUrl);
+    return new URL(normalized).host || "upstream";
+  } catch {
+    return "upstream";
+  }
+}
+
+function readSchedulerPriority(req: IncomingMessage, body: any): SchedulerPriority {
+  const headerValue = String(req.headers["x-histwrite-priority"] ?? "").trim().toLowerCase();
+  const bodyValue = String(body?.metadata?.histwritePriority ?? body?.histwritePriority ?? "").trim().toLowerCase();
+  const raw = headerValue || bodyValue || "draft";
+  switch (raw) {
+    case "verify":
+    case "finalize":
+    case "evidence":
+    case "draft":
+    case "weave":
+    case "final":
+      return raw;
+    default:
+      return "draft";
+  }
+}
+
 async function handleModels(params: { res: ServerResponse; config: OpenAiCompatProxyConfig }) {
   const { res, config } = params;
   setCors(res);
@@ -361,6 +412,19 @@ export async function startOpenAiCompatProxy(config: OpenAiCompatProxyConfig): P
 }> {
   const cacheDir = config.cacheDir?.trim() ? config.cacheDir.trim() : "";
   const cache = cacheDir ? await createCasCache(cacheDir) : null;
+  const schedulerProvider = inferSchedulerProvider(config);
+  const scheduler = createProviderScheduler({
+    providers: {
+      [schedulerProvider]: {
+        maxConcurrency: config.scheduler?.maxConcurrency ?? 4,
+        maxRetries: config.scheduler?.maxRetries ?? 2,
+        baseDelayMs: config.scheduler?.baseDelayMs ?? 300,
+        maxDelayMs: config.scheduler?.maxDelayMs ?? 5_000,
+        jitterRatio: config.scheduler?.jitterRatio ?? 0.25,
+      },
+    },
+    defaultProvider: schedulerProvider,
+  });
 
   const server = createServer(async (req, res) => {
     setCors(res);
@@ -388,7 +452,7 @@ export async function startOpenAiCompatProxy(config: OpenAiCompatProxyConfig): P
       try {
         const raw = await readBodyUtf8(req);
         const body = raw.trim() ? (JSON.parse(raw) as unknown) : {};
-        await handleChatCompletions({ req, res, config, body, cache });
+        await handleChatCompletions({ req, res, config, body, cache, scheduler, schedulerProvider });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         res.writeHead(500, { "Content-Type": "application/json" });

@@ -12,6 +12,7 @@ export type HistwriteProjectLayout = {
   draftDir: string;
   exportDir: string;
   metaDir: string;
+  artifactsDir: string;
   cacheDir: string;
   logsDir: string;
   learnDir: string;
@@ -23,6 +24,7 @@ export function resolveHistwriteLayout(projectDir: string): HistwriteProjectLayo
   const root = path.resolve(projectDir);
   const materialsDir = path.join(root, "材料");
   const metaDir = path.join(root, ".histwrite");
+  const artifactsDir = path.join(metaDir, "artifacts");
   const learnDir = path.join(metaDir, "learn");
   const judgesDir = path.join(learnDir, "judges");
   return {
@@ -36,6 +38,7 @@ export function resolveHistwriteLayout(projectDir: string): HistwriteProjectLayo
     draftDir: path.join(root, "正文"),
     exportDir: path.join(root, "导出"),
     metaDir,
+    artifactsDir,
     cacheDir: path.join(metaDir, "cache"),
     logsDir: path.join(metaDir, "logs"),
     learnDir,
@@ -56,6 +59,7 @@ export async function ensureHistwriteProject(projectDir: string): Promise<Histwr
     layout.draftDir,
     layout.exportDir,
     layout.metaDir,
+    layout.artifactsDir,
     layout.cacheDir,
     layout.logsDir,
     layout.learnDir,

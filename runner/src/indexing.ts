@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 import JSZip from "jszip";
 
 import type { HistwriteProjectLayout } from "./project.js";
+import { buildMaterialV2, buildMaterialsV2Dataset, type MaterialV2, type MaterialsV2Dataset } from "./artifacts/materials.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -160,9 +161,10 @@ export async function indexMaterials(params: {
     let textPath: string | null = null;
     let textSha256: string | null = null;
     if (typeof text === "string") {
-      textSha256 = sha256HexBytes(Buffer.from(text, "utf8"));
+      const fileText = text === "" ? "" : text.endsWith("\n") ? text : `${text}\n`;
+      textSha256 = sha256HexBytes(Buffer.from(fileText, "utf8"));
       const absTextPath = path.join(textRoot, `${id}.txt`);
-      await fs.writeFile(absTextPath, `${text}\n`, "utf8");
+      await fs.writeFile(absTextPath, fileText, "utf8");
       textPath = toProjectPath(params.layout, absTextPath);
     }
 
@@ -221,4 +223,53 @@ export async function writeLibraryIndexMarkdown(params: {
   const content = `${lines.join("\n")}\n`;
   await fs.writeFile(outPath, content, "utf8");
   return outPath;
+}
+
+function fromProjectPath(layout: HistwriteProjectLayout, maybeRel: string): string {
+  if (path.isAbsolute(maybeRel)) return maybeRel;
+  return path.join(layout.projectDir, maybeRel);
+}
+
+export async function buildMaterialsV2FromLibraryIndex(params: {
+  layout: HistwriteProjectLayout;
+  library: LibraryIndex;
+}): Promise<{ outPath: string; dataset: MaterialsV2Dataset; skipped: string[] }> {
+  const skipped: string[] = [];
+  const materials: MaterialV2[] = [];
+
+  for (const entry of params.library.materials) {
+    if (!entry.textPath) {
+      skipped.push(entry.id);
+      continue;
+    }
+    const absTextPath = fromProjectPath(params.layout, entry.textPath);
+    const rawText = await fs.readFile(absTextPath, "utf8");
+
+    if (entry.textSha256) {
+      const actual = sha256HexBytes(Buffer.from(rawText, "utf8"));
+      if (actual !== entry.textSha256) {
+        throw new Error(`materials v2 build: textSha256 mismatch for ${entry.id} (${entry.textPath})`);
+      }
+    }
+
+    materials.push(
+      buildMaterialV2({
+        materialId: entry.id,
+        provenance: {
+          kind: entry.kind,
+          title: entry.title,
+          sourcePath: entry.sourcePath,
+          sourceSha256: entry.sourceSha256,
+          textPath: entry.textPath,
+          textSha256: entry.textSha256,
+        },
+        rawText,
+      }),
+    );
+  }
+
+  const dataset = buildMaterialsV2Dataset(materials);
+  const outPath = path.join(params.layout.materialsIndexDir, "materials.v2.json");
+  await fs.writeFile(outPath, `${JSON.stringify(dataset, null, 2)}\n`, "utf8");
+  return { outPath, dataset, skipped };
 }

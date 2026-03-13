@@ -37,7 +37,7 @@ node --import tsx runner/src/cli.ts index --project "<项目目录>" --materials
 调用本机 Browser Relay 的 `/snapshot`，把当前 tab 的截图/文本落盘到项目里（默认 `材料/_index/snapshots/`）：
 
 ```bash
-node --import tsx runner/src/cli.ts capture --project "<项目目录>" --relay "http://127.0.0.1:18792"
+node --import tsx runner/src/cli.ts capture --project "<项目目录>" --relay "http://127.0.0.1:18992"
 ```
 
 可选参数：
@@ -188,3 +188,28 @@ export OPENAI_API_KEY="local"
 ```bash
 node --import tsx runner/src/cli.ts finalcheck --project "<项目目录>" --file "<草稿路径>"
 ```
+
+### `eval run`
+
+对固定 fixture 做多次完整 `finalize` 回放，统计收敛率与稳定性：
+
+```bash
+node --import tsx runner/src/cli.ts eval run \
+  --fixture "content/examples/v4.1-fixture" \
+  --runs 3 \
+  --apiBaseUrl "$OPENAI_BASE_URL" \
+  --model "$HISTWRITE_FINALIZE_MODEL" \
+  --json
+```
+
+输出：
+
+- `summary.json`：汇总指标（`runCount`、`uniqueFinalOutputCount`、`convergenceRate`、gate/no-new-claims/placeholder 清零情况）
+- `summary.md`：便于人工阅读的回放摘要
+- `runs/run-XXX/result.json`：每次回放的 finalize 原始结果
+- `runs/run-XXX/bundle/`：每次回放导出的 `Final.md` / reports / artifacts
+
+说明：
+
+- 默认使用 fixture 内的 `project/` 作为输入样本，每次运行都会复制到临时目录，避免污染样本工程
+- 默认禁用 cache，以便观察真实的多次回放差异

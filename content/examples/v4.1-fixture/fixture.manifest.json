@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "fixtureId": "v4.1-fixture",
+  "targetSection": {
+    "sectionId": "s1",
+    "title": "1902年前后地方财政调整的启动逻辑",
+    "minChars": 500,
+    "maxChars": 900
+  },
+  "projectFiles": [
+    "project/材料/01-按察司咨文摘录.txt",
+    "project/材料/02-盐课册摘录.txt",
+    "project/材料/03-上谕抄录.txt",
+    "project/材料/04-州县禀稿.txt",
+    "project/材料/05-河工经费清单.txt",
+    "project/材料/06-绅士公呈.txt",
+    "project/材料/_index/materials.v2.json",
+    "project/蓝图/blueprint.v2.json",
+    "project/正文/section.s1.md",
+    "project/.histwrite/artifacts/cards.v2.json",
+    "project/.histwrite/artifacts/qa.v1.json",
+    "project/.histwrite/artifacts/section.s1.pack.v1.json",
+    "project/.histwrite/artifacts/claims.v1.json",
+    "project/.histwrite/artifacts/heads.json",
+    "project/.histwrite/reports/factcheck.v1.json",
+    "project/.histwrite/reports/chronology.v1.json"
+  ],
+  "bundleFiles": [
+    "bundle/Final.md",
+    "bundle/reports/factcheck.json",
+    "bundle/reports/chronology.json",
+    "bundle/reports/finalcheck.md",
+    "bundle/artifacts/materials.v2.json",
+    "bundle/artifacts/cards.v2.json",
+    "bundle/artifacts/qa.v1.json",
+    "bundle/artifacts/section.s1.pack.v1.json",
+    "bundle/artifacts/claims.v1.json",
+    "bundle/artifact-heads.json",
+    "bundle/runlog.jsonl"
+  ]
+}

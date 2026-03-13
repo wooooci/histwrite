@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import { describe, expect, it } from "vitest";
@@ -29,11 +30,11 @@ describe("histwrite runner cli finalcheck", () => {
         "",
         "[^1]: 参见 file:///tmp/local-only.pdf **###**",
         "",
-      ].join("\n"),
+    ].join("\n"),
       "utf8",
     );
 
-    const cliPath = path.resolve("runner/src/cli.ts");
+    const cliPath = fileURLToPath(new URL("./cli.ts", import.meta.url));
     const { stdout } = await execFileAsync(process.execPath, [
       "--import",
       "tsx",

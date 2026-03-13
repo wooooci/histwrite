@@ -1,0 +1,354 @@
+# Relay Handoff
+
+日期：2026-03-12
+
+## 本轮新增进展
+
+- 已把 **repo-local** 的 raw CDP 重附着 helper 迁入当前仓：
+  - `runner/src/scanners/cdp.ts`
+  - `runner/src/scanners/cdp-target-rebind.ts`
+  - `runner/src/scanners/relay-history.ts`
+- 已把 **repo-local** 的 JSTOR 扫描器迁入当前仓：
+  - `runner/src/scanners/jstor.ts`
+- 已把 scanner dispatch / CLI / 插件入口接通：
+  - `runner/src/scanners/command.ts`
+  - `runner/src/scanners/command.test.ts`
+  - `runner/src/cli.ts`
+  - `runner/src/cli.scan.test.ts`
+  - `plugin-openclaw/src/runtime.test.ts`
+  - `plugin-openclaw/index.ts`
+  - `plugin-openclaw/index.test.ts`
+- 已按同一模式把 4 个平台 scanner 迁入当前仓：
+  - `runner/src/scanners/proquest.ts`
+  - `runner/src/scanners/gale.ts`
+  - `runner/src/scanners/adammatthew.ts`
+  - `runner/src/scanners/hathitrust.ts`
+- 已补这 4 个平台的纯函数回归：
+  - `runner/src/scanners/platform-parsers.test.ts`
+- 已补 ProQuest live 回归与收口：
+  - `runner/src/scanners/proquest.test.ts`
+  - `runner/src/cli.ts` 的 `scan` 分支现在会在 scanner 成功后 `process.exit(0)`，不再落回全局 usage
+- 已修 ProQuest 的两处 live 兼容问题：
+  1. **入口/结果页路径已切到当前 live 口径**：`https://www.proquest.com/advanced?...` / `https://www.proquest.com/results/...`
+  2. **docview abstract 页面约 12s 后 target 自闭合**：`fetchAbstract()` 现在在 `Session with given id not found` 时返回最后一次可用快照，不再让整次扫描失败
+- `runner/src/scanners/command.ts` 的默认 deps 已从 unsupported placeholder 切到真实 scanner imports
+- 仓内默认 relay 端口口径已统一到 `18992`，已覆盖：
+  - `runner/src/capture.ts`
+  - `runner/src/cli.ts`
+  - `relay/index.ts`
+  - `plugin-openclaw/index.ts`
+  - `relay/extension/background.js`
+  - `relay/extension/options.js`
+  - `relay/extension/options.html`
+  - `relay/README.md`
+  - `relay/extension/README.md`
+  - `runner/README.md`
+- 已补 repo-local 回归测试：
+  - `runner/src/scanners/cdp-target-rebind.test.ts`
+  - `runner/src/scanners/jstor.test.ts`
+- 已修掉 JSTOR 的两个关键问题：
+  1. **redirect 后 session 还挂在 `about:blank`** → 现在通过 `Target.getTargets + reattachAfterRedirect()` 处理
+  2. **结果页 `items: []`** → 原因是 title host / stable link 在 `shadowRoot` 组合里；现在改成按 `li.result-list__item + [data-qa=\"search-result-title-link\"] + shadowRoot a[href*=\"/stable/\"]` 抽取
+- 同时修了 `total_results` 误吃页面里年份（如 `2026`）的问题；现在优先解析 `5,400 results` 这类明确计数行
+- 已补 raw CDP reattach 的一条失败回归，锁定“当配置了 `expectedUrlSubstrings` 时，**不能只因为命中了 `proxy.lib.umich.edu` 这种 generic proxy host 就误选中别的平台 tab**”
+- `runner/src/scanners/cdp-target-rebind.ts` 现已区分：
+  - vendor-specific host（如 `gale` / `galegroup` / `jstor` / `proquest.com`）
+  - generic proxy host（如 `proxy.lib.umich.edu`）
+  - 当 `expectedUrlSubstrings` 非空时，只接受：
+    - URL substring 命中，或
+    - 非通用 vendor host 命中
+  - 单独命中 generic proxy host 不再算有效 reattach 命中
+- `Adam Matthew` 已在当前 Chrome 登录态下完成 fresh live smoke：
+  - 成功产物：`/tmp/histwrite-live-smoke-adammatthew-20260312b/adammatthew_am_explorer_lippmann_2026-03-12.json`
+  - 当前结果：`total=777`、`rowCount=150`、`pagesScanned=1`
+- 已把 `Gale` 当前 live 基础页完整 HTML 拉到本地用于 DOM 对照：
+  - `/tmp/histwrite-gale-basic-search-20260312.html`
+  - 关键结论：
+    - 搜索表单是 `form#quickSearchForm`
+    - 搜索输入框仍是 `input#inputFieldValue_0`
+    - 旧的 `input#homepage_submit` 已不存在
+    - 但 form 内仍有匿名 `input[type="submit"]`，带 `data-testid="homepage-submit"`
+- `runner/src/scanners/gale.ts` 已按上面的新 DOM 口径收口：
+  - ready 条件改为 `#quickSearchForm + #inputFieldValue_0`
+  - 新增 `chooseGaleSubmitSelector()`，优先级：
+    - `#homepage_submit`
+    - `#quickSearchForm button[type="submit"]`
+    - `#quickSearchForm input[type="submit"]`
+    - 最后 fallback `form.requestSubmit()` / `form.submit()`
+  - 新增 `shouldFollowGaleNextPage()`，修正 `--max-pages 1` 仍把 `pagesScanned` 记成 `2` 的口径问题
+- `Gale` 已完成 fresh live smoke：
+  - 成功产物：`/tmp/histwrite-live-smoke-gale-20260312e/gale_ttda_keyword_walter_lippmann_2026-03-12.json`
+  - 配套 report：`/tmp/histwrite-live-smoke-gale-20260312e/gale_ttda_keyword_walter_lippmann_2026-03-12.search-report.md`
+  - 当前结果：`resultsUrl=https://go-gale-com.proxy.lib.umich.edu/ps/basicSearch.do?...`、`hitCount=372`、`rowCount=20`、`pagesScanned=1`
+- 已开始补控制面（platform matrix）而不是只堆 scanner：
+  - 新增：`runner/src/platform/contract.ts`
+  - 新增：`runner/src/platform/guide-cleaning.ts`
+  - 新增：`runner/src/platform/matrix.ts`
+  - 新增：`runner/src/platform/contract.test.ts`
+  - 新增：`runner/src/platform/guide-cleaning.test.ts`
+  - 新增：`runner/src/platform/matrix.test.ts`
+  - 新增：`runner/src/cli.platform-matrix.test.ts`
+- 当前已把 `platform matrix` 接到 CLI：
+  - 命令：`node --import tsx runner/src/cli.ts platform matrix --project <dir> --guide-json <path> --umich-json <path>`
+  - 输出：
+    - `材料/_index/umich_platform_matrix.json`
+    - `材料/_index/umich_platform_matrix.tsv`
+    - `材料/_index/umich_platform_matrix.md`
+  - 当前实现口径：
+    - `guide-cleaning.ts` 负责 OCR 脏字符替换、guide name 归一化、按数据库代码拆分粘连条目
+    - `matrix.ts` 负责 UMich 命中 URL 分类、landing URL/host 解析、平台识别、矩阵匹配、TSV/Markdown 导出
+    - `cli.ts` 只做薄的读参/读 JSON/落盘，不把匹配逻辑塞进去
+- 当前控制面已补的关键行为：
+  - OCR 特征字符替换：
+    - `ꎬ -> ,`
+    - `􀆰 -> .`
+    - `􀆳 -> '`
+  - 支持按 `K712 / E155` 这类代码模式拆分合并在一条 `raw` 里的指南条目
+  - `classifyUmichEntryKind()` 当前可区分：
+    - `umich_database_link`
+    - `umich_proxy_login`
+    - `umich_search`
+    - `direct_vendor`
+  - `resolvePlatformFromHostOrName()` 当前可识别：
+    - `jstor / proquest / gale / adammatthew / hathitrust / cnki / fallback`
+  - `matchGuideEntriesToUmichHits()` 当前采用：
+    - 先 direct name / substring / token overlap 打分
+    - 再做 platform fallback
+    - 最后对剩余未占用 UMich hit 做一次唯一候选兜底
+- 现实约束：
+  - 计划里引用的 `材料/_index/world_history_db_guide_appendix2.json` 当前**不在仓内该路径**
+  - 所以 `platform matrix` 目前做成**显式传入** `--guide-json` / `--umich-json` 的形式，而不是先写死某个仓内默认文件
+- 已把 Task 4 的 platform driver 层落到仓里：
+  - 新增：`runner/src/platform/driver-contract.ts`
+  - 新增：`runner/src/platform/registry.ts`
+  - 新增：`runner/src/platform/dispatch.ts`
+  - 新增：`runner/src/platform/drivers/gale.ts`
+  - 新增：`runner/src/platform/drivers/jstor.ts`
+  - 新增：`runner/src/platform/drivers/proquest.ts`
+  - 新增：`runner/src/platform/drivers/adammatthew.ts`
+  - 新增：`runner/src/platform/driver-contract.test.ts`
+  - 新增：`runner/src/platform/registry.test.ts`
+- 当前 driver 层口径：
+  - 统一 deps 形状：`relayBaseUrl + snapshot + runCdp`
+  - `Gale` 是第一个强驱动：
+    - 会实际调用注入的 `snapshot()` 与 `runCdp()`
+    - 目前返回 `status: "ready"` 的结构化结果
+  - `JSTOR / ProQuest / Adam Matthew / HathiTrust / CNKI / fallback` 当前先放进统一 registry
+    - 尚未完成的平台统一返回：
+      - `ok: false`
+      - `status: "manual_required"`
+      - `reason: "unsupported_download_mode"`
+- `runner/src/capture.ts` 已补成可复用的 driver 依赖来源：
+  - 新导出：`normalizeRelayBaseUrl()`
+  - `dispatch.ts` 现在直接复用它来统一 relay base URL 口径
+- 已把 Task 5 的真实工具入口接到 CLI：
+  - 新增：`runner/src/cli.sources.test.ts`
+  - `runner/src/cli.ts` 当前已支持：
+    - `sources matrix`
+    - `sources platform-plan`
+    - `sources download --platform <id> --mode <mode>`
+- 当前 `sources download` 口径：
+  - 先读 `umich_platform_matrix.json`
+  - 选中对应矩阵行
+  - 再走 `platform/dispatch.ts`
+  - 对 stub driver 会返回结构化 `manual_required`
+  - `Gale` 当前已比 stub 更进一步：
+    - `sources download --platform gale --mode page_range_dialog --term ... --dry-run`
+    - 会走到 Gale 强驱动
+    - CLI 默认 deps 在 `dry-run` 下会提供合成 snapshot，并返回结构化 `cdp` 计划信息
+    - 因此 dry-run 不再依赖现场已有 attached tab
+- OpenClaw 插件当前无需第二套入口：
+  - `plugin-openclaw/src/runtime.ts` 的原始 command 透传本来就可用
+  - 已补回归：`plugin-openclaw/src/runtime.test.ts`
+  - 已补帮助文案：`plugin-openclaw/index.ts` 现在会显示
+    - `sources matrix --project demo`
+    - `sources platform-plan --project demo`
+    - `sources download --project demo --platform cnki --mode zotero_only --dry-run`
+- 类型检查现实：
+  - 计划里写的 `pnpm -s tsc -p tsconfig.json --noEmit` 当前**无法按字面执行**
+  - 原因不是类型错误，而是当前工作区根部**不存在任何 `tsconfig*.json`**
+- 已确认并接通**仓外真实输入**，不再停留在 5 行 bootstrap：
+  - 完整指南清洗 JSON：
+    - `/Users/woooci/Downloads/clawdbot-2026.1.24/材料/_index/world_history_db_guide_appendix2.json`
+    - 当前形状：`{ sourcePdf, appendix2PdfPages, extractedAt, count=1118, items[] }`
+  - UMich 历史数据库真实抓取 JSON：
+    - `/Users/woooci/Documents/Obsidian Vault/clawdbot/skill-outputs/umich-lib-history-databases/2026-02-07/umich_history_us_history_databases_raw.json`
+    - 当前形状：`{ scrapedAt, disciplines[] }`
+    - 展平前总行数：`619`
+    - 去重后唯一记录：`569`
+- `runner/src/platform/guide-cleaning.ts` 已补对真实 appendix 数据的兼容：
+  - 现在会优先识别完整分类号（如 `K712/E158`、`D813.2/Z01`），不再把单个 slash code 误拆成空 guide row
+  - 对真正合并在一条 `raw` 里的多数据库行，已改成按**完整 code 段尾**切分
+  - 仍保留 legacy 非 slash code 拆分逻辑，用于旧测试样例
+- `runner/src/platform/matrix.ts` 已补对真实 UMich raw JSON 的兼容：
+  - 新增 `extractUmichHits()`，支持直接读取 `disciplines[].rows[]`
+  - 展平时按 `recordId` 去重
+  - 生成 hit 时优先保留 `permalink` 作为 `url`
+- 已新增统一 vendor landing resolver：
+  - 新增：`runner/src/platform/vendor-landing.ts`
+  - 新增：`runner/src/platform/vendor-landing.test.ts`
+  - `platform matrix` 现在默认会对 UMich `ddm.dnd.lib.umich.edu/database/link/*` 做一次**不跟随跳转的 GET**
+  - 当前解析策略：
+    - 先读 `302 Location`
+    - 如果没有 `Location`，再退回解析 `meta refresh`
+    - 对 `proxy.lib.umich.edu/login?qurl=...` / `?url=...` 自动解出 vendor URL
+    - 自动清理 `&amp;` / `amp%3B` 这类编码残留
+  - 说明：
+    - CLI 现在支持 `--no-resolve-landing`，测试里已显式关闭；真实跑矩阵时默认开启
+- 平台识别/匹配口径已收紧到**高精度优先**：
+  - `resolvePlatformFromHostOrName()` 现在区分 host 命中与 name 命中
+  - `gale` 已改成词边界/token 识别，不再把 `Egale` 误判成 Gale
+  - `AMD` 现在可识别为 `adammatthew`
+  - 自动匹配只接受：
+    - exact name
+    - 明确 substring/inclusion
+    - 高相似度 token match
+    - 或“唯一且来自真实 host 信号”的平台回退命中
+  - 已移除“最后只剩 1 个 hit 就强行配对”的兜底，避免大量假阳性
+- 当前正式矩阵已重新生成到仓内：
+  - `材料/_index/umich_platform_matrix.json`
+  - `材料/_index/umich_platform_matrix.tsv`
+  - `材料/_index/umich_platform_matrix.md`
+  - 最近一次生成时间：`2026-03-13T04:22:29.257Z`
+  - 当前 `rowCount=1145`
+  - 当前平台分布：
+    - `fallback=1013`
+    - `gale=73`
+    - `proquest=37`
+    - `adammatthew=19`
+    - `jstor=2`
+    - `hathitrust=1`
+  - 当前状态分布：
+    - `manual_required=1003`
+    - `planned=142`
+  - 当前 `landingHost != ddm.dnd.lib.umich.edu` 的已解析 vendor landing 行数：`142`
+  - 已确认的关键样本：
+    - `Gale in Context: World History -> http://find.galegroup.com/menu/start?... -> find.galegroup.com -> gale`
+    - `ProQuest History Vault -> https://www.proquest.com/hvhistoryvault?accountid=14667 -> www.proquest.com -> proquest`
+    - `Books at JSTOR -> http://www.jstor.org/ -> www.jstor.org -> jstor`
+    - `HathiTrust Digital Library -> http://catalog.hathitrust.org/ -> catalog.hathitrust.org -> hathitrust`
+    - `Age of Exploration -> http://www.exploration.amdigital.co.uk -> www.exploration.amdigital.co.uk -> adammatthew`
+- `sources` 控制面当前已确认可直接读取这份正式矩阵：
+  - `node --import tsx runner/src/cli.ts sources matrix --project /Users/woooci/Downloads/histwrite`
+    - 返回：`rowCount=1145`
+  - `node --import tsx runner/src/cli.ts sources platform-plan --project /Users/woooci/Downloads/histwrite`
+    - 返回平台汇总：
+      - `fallback 1013`
+      - `gale 73`
+      - `proquest 37`
+      - `adammatthew 19`
+      - `jstor 2`
+      - `hathitrust 1`
+
+## 当前结论
+
+- 后续 Histwrite 的 relay 相关工作，以这个目录为准：`/Users/woooci/Downloads/histwrite/relay`
+- 当前已验证 relay server 可用，工作端口使用 `18992`
+- 当前问题**已经不再是 relay 已死**；JSTOR 这条链路上的主 blocker（raw CDP session 容易卡在 `about:blank`）已经被打穿
+- 本次平台适配/relay 相关计划的项目仓库，统一指向当前这个 `histwrite` 工作区：`/Users/woooci/Downloads/histwrite`，不要再按旧的 `clawdbot` 仓库去理解路径
+
+## 已确认状态
+
+- `http://127.0.0.1:18992/extension/status` 返回过 `{"connected":true}`
+- 原生 CDP 探针可连 `ws://127.0.0.1:18992/cdp`
+- `Browser.getVersion`、`Target.createTarget`、`Runtime.evaluate` 都已跑通过
+- 手工探针已成功拿到 `https://example.com/` 与标题 `Example Domain`
+- fresh repo-local 单测：
+  - `pnpm exec vitest run runner/src/scanners/cdp-target-rebind.test.ts runner/src/scanners/jstor.test.ts`
+  - 结果：`11 passed`
+- fresh repo-local JSTOR smoke：
+  - 命令：`node --import tsx /Users/woooci/Downloads/histwrite/runner/src/scanners/jstor.ts --project /Users/woooci/Downloads/histwrite --out-dir /tmp/histwrite-smoke-final-4 --base-term "Walter Lippmann" --term-2 "public opinion" --max-items 3 --max-pages 1`
+  - 产物：`/tmp/histwrite-smoke-final-4/jstor_advanced_search_walter_lippmann_2026-03-12.json`
+  - 已确认：`total_results = 5400`、`item_count = 3`
+- fresh 当前批次回归：
+  - 命令：`pnpm exec vitest run runner/src/scanners/cdp-target-rebind.test.ts runner/src/scanners/jstor.test.ts runner/src/scanners/command.test.ts runner/src/scanners/platform-parsers.test.ts runner/src/cli.scan.test.ts runner/src/capture.test.ts plugin-openclaw/src/runtime.test.ts plugin-openclaw/index.test.ts`
+  - 结果：`8 files passed`、`28 tests passed`
+- fresh 本轮 ProQuest / scanner / CLI 相关回归：
+  - 命令：`pnpm exec vitest run runner/src/scanners/cdp-target-rebind.test.ts runner/src/scanners/jstor.test.ts runner/src/scanners/command.test.ts runner/src/scanners/platform-parsers.test.ts runner/src/scanners/proquest.test.ts runner/src/cli.scan.test.ts`
+  - 结果：`6 files passed`、`26 tests passed`
+- fresh 本轮 Gale / reattach / parser / ProQuest 组合回归：
+  - 命令：`pnpm exec vitest run runner/src/scanners/gale.test.ts runner/src/scanners/cdp-target-rebind.test.ts runner/src/scanners/proquest.test.ts runner/src/scanners/platform-parsers.test.ts`
+  - 结果：`4 files passed`、`23 tests passed`
+- fresh 本轮 platform matrix / CLI 回归：
+  - 命令：`pnpm exec vitest run runner/src/platform/contract.test.ts runner/src/platform/guide-cleaning.test.ts runner/src/platform/matrix.test.ts runner/src/cli.platform-matrix.test.ts runner/src/cli.scan.test.ts`
+  - 结果：`5 files passed`、`11 tests passed`
+- fresh 本轮 driver / dispatch / capture 回归：
+  - 命令：`pnpm exec vitest run runner/src/platform/driver-contract.test.ts runner/src/platform/registry.test.ts runner/src/capture.test.ts`
+  - 结果：`3 files passed`、`6 tests passed`
+- fresh 本轮 sources / plugin 入口回归：
+  - 命令：`pnpm exec vitest run runner/src/cli.sources.test.ts plugin-openclaw/src/runtime.test.ts plugin-openclaw/index.test.ts`
+  - 结果：`3 files passed`、`10 tests passed`
+- fresh 本轮累计 platform/cli/plugin 基线回归：
+  - 命令：`pnpm exec vitest run runner/src/platform/driver-contract.test.ts runner/src/platform/registry.test.ts runner/src/platform/contract.test.ts runner/src/platform/guide-cleaning.test.ts runner/src/platform/matrix.test.ts runner/src/cli.platform-matrix.test.ts runner/src/cli.scan.test.ts runner/src/capture.test.ts`
+  - 结果：`8 files passed`、`17 tests passed`
+- fresh 本轮累计 platform + sources + plugin 全链路回归：
+  - 命令：`pnpm exec vitest run runner/src/platform/contract.test.ts runner/src/platform/guide-cleaning.test.ts runner/src/platform/matrix.test.ts runner/src/platform/driver-contract.test.ts runner/src/platform/registry.test.ts runner/src/cli.platform-matrix.test.ts runner/src/cli.sources.test.ts runner/src/cli.scan.test.ts runner/src/capture.test.ts plugin-openclaw/src/runtime.test.ts plugin-openclaw/index.test.ts`
+  - 结果：`11 files passed`、`28 tests passed`
+- fresh scanner import smoke：
+  - 命令：`node --import tsx -e "await import('./runner/src/scanners/proquest.ts'); await import('./runner/src/scanners/gale.ts'); await import('./runner/src/scanners/adammatthew.ts'); await import('./runner/src/scanners/hathitrust.ts'); await import('./runner/src/scanners/command.ts'); console.log('scanner-imports-ok')"`
+  - 结果：`scanner-imports-ok`
+- fresh live smoke（新平台）：
+  - `ProQuest`：
+    - 成功产物：`/tmp/histwrite-live-smoke-proquest-20260312c/proquest_pqdt_title_walter_lippmann_2026-03-12.json`
+    - 配套 report：`/tmp/histwrite-live-smoke-proquest-20260312c/proquest_pqdt_title_walter_lippmann_2026-03-12.search-report.md`
+    - 当前结果：`resultsUrl=https://www.proquest.com/results/38DC466B225E4D70PQ/1?accountid=14667`、`total=1407`、`pages=71`、`rowCount=1407`
+    - 说明：scanner 已能成功完成并落盘；`abstract` / `abstractSnippet` 当前仍大量为 `null`，因为 ProQuest 的 `/abstract/` 路由当前会落到 PDF/citation 壳页，后续还要单独增强摘要抽取
+  - `ProQuest`（快速校验，专门确认 CLI 成功退出）：
+    - 成功产物：`/tmp/histwrite-live-smoke-proquest-quick-20260312/proquest_pqdt_title_political_philosophy_of_walter_lippmann_2026-03-12.json`
+    - 当前结果：`total=2`、`pages=1`、`rowCount=2`
+    - 说明：这条命令已返回退出码 `0`，证明 `runner/src/cli.ts` 的 `scan` 成功路径收口正确
+  - `HathiTrust`：
+    - 成功产物：`/tmp/histwrite-live-smoke-hathitrust-20260312/hathitrust_advanced_walter_lippmann_2026-03-12.json`
+    - 配套 report：`/tmp/histwrite-live-smoke-hathitrust-20260312/hathitrust_advanced_walter_lippmann_2026-03-12.search-report.md`
+    - 当前结果：`resultsUrl=https://catalog.hathitrust.org/Search/Home?adv=1&setft=true&ft=ft&lookfor%5B%5D=%22Walter+Lippmann%22&type%5B%5D=all`、`pagesScanned=1`、`rowCount=10`、`hitCount=null`
+  - `Gale`：
+    - 当前状态：**已打通**
+    - 成功产物：`/tmp/histwrite-live-smoke-gale-20260312e/gale_ttda_keyword_walter_lippmann_2026-03-12.json`
+    - 配套 report：`/tmp/histwrite-live-smoke-gale-20260312e/gale_ttda_keyword_walter_lippmann_2026-03-12.search-report.md`
+    - 当前结果：`hitCount=372`、`rowCount=20`、`pagesScanned=1`
+    - 根因拆解：
+      1. helper 层此前会把 generic proxy host 当成有效 reattach 命中，导致在多 attached proxy tabs 下误跳回 JSTOR
+      2. Gale live 页面本身也发生了真实 DOM 漂移，旧的 `#homepage_submit` 已失效，必须改成 `#quickSearchForm` 驱动
+  - `Adam Matthew`：
+    - 当前状态：在用户完成登录后已通过
+    - 成功产物：`/tmp/histwrite-live-smoke-adammatthew-20260312b/adammatthew_am_explorer_lippmann_2026-03-12.json`
+    - 当前结果：`total=777`、`rowCount=150`、`pagesScanned=1`
+
+## 关键运行现实
+
+- Chrome 当前实际加载的 unpacked 扩展路径是：`/Users/woooci/.openclaw/browser/chrome-extension`
+- 所以如果修改这里的 `relay/extension/*`，要记得把 Chrome 里的 unpacked 扩展重新加载，或者同步到上面的实际加载路径
+- 目前这份 repo 里的 `relay/extension/background.js` 已包含导航后刷新 target 信息的修复（`Page.frameNavigated -> refreshTargetInfo`）
+
+## 后续工作入口
+
+1. repo-local 控制面与平台矩阵：看 `../docs/plans/2026-03-12-histwrite-platform-cluster-adaptation.md`
+2. 现在 runner 的统一入口已经可用：
+   - 直接跑 CLI：`node --import tsx runner/src/cli.ts scan jstor --project /Users/woooci/Downloads/histwrite ...`
+   - 新支持的平台：`jstor / proquest / gale / adammatthew / hathitrust`
+   - 新支持的控制面命令：`node --import tsx runner/src/cli.ts platform matrix --project ... --guide-json ... --umich-json ...`
+   - 新支持的 sources 命令：
+     - `node --import tsx runner/src/cli.ts sources matrix --project ...`
+     - `node --import tsx runner/src/cli.ts sources platform-plan --project ...`
+     - `node --import tsx runner/src/cli.ts sources download --project ... --platform ... --mode ...`
+   - OpenClaw 插件帮助文本也已给出 `scan jstor ...` 示例
+3. 下一步优先做 live smoke，而不是继续抽象：
+   - 当前更顺的主线已经从单个平台 smoke 转向 **Task 5 之后的 sources download 真正落地**
+   - 现阶段 registry / dispatch / sources CLI 已有最小闭环，且 `Gale dry-run` 已通
+   - 下一步更值当的是把 `sources download` 的默认 `runCdp` 从占位实现推进到真正调用平台 scanner / CDP helper，优先顺序建议：
+     1. `gale`
+     2. `proquest`
+     3. `jstor`
+     4. `adammatthew`
+   - `ProQuest` / `HathiTrust` / `Gale` / `Adam Matthew` 现在都已有 fresh live 产物，可以作为 driver 层的现成能力来源
+   - `ProQuest` 后续值得补的不是主流程，而是 `/docview/.../abstract` 当前落到 PDF/citation 壳页时的摘要提取策略
+4. 默认端口口径已经统一：
+   - 当前仓内 runner / relay / plugin / extension / README 默认都以 `18992` 为准
+   - 如果 Chrome 里仍然连旧端口，优先检查实际加载的 unpacked 扩展是否已 reload
+
+## 现在不要做的事
+
+- 不要把 `clawdbot browser status` 的 `401` 当成 Histwrite 主 blocker
+- 不要依赖“再写一个 `/tabs` helper”来替代 raw CDP 生命周期修复
+- 不要在没清楚实际加载扩展路径的情况下，只改 repo 文件就以为 Chrome 会立刻生效
+- 不要再把 JSTOR 的主问题理解成“抽不到结果是因为 relay 不通”；当前更靠谱的模式已经在 `runner/src/scanners/jstor.ts` 里落地了

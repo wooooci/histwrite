@@ -137,6 +137,7 @@ export async function rewriteMarkdownFile(params: {
   const promptVersion = "rewrite_markdown_v1";
   const apiBaseUrlNormalized = normalizeOpenAiCompatBaseUrl(params.client.apiBaseUrl);
   const key = cacheKey({
+    taskName: "rewrite_markdown",
     model: params.client.model,
     promptVersion,
     inputs: {

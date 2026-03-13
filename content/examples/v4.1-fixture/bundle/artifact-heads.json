@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "updatedAt": "2026-03-12T00:00:00.000Z",
+  "materialsV2": {
+    "artifactId": "sha256:c1986845739b6a371d7d378ede8630f7a99e7f8f06465c402fbaaba15feeebd7",
+    "sha256": "c1986845739b6a371d7d378ede8630f7a99e7f8f06465c402fbaaba15feeebd7",
+    "path": "project/材料/_index/materials.v2.json",
+    "builtAt": "2026-03-12T00:00:00.000Z"
+  },
+  "cardsV2": {
+    "artifactId": "sha256:eb8cb43af9fcfe63b85bcc77ec65320faa40113750b79d08aa77ce5a5e721b40",
+    "sha256": "eb8cb43af9fcfe63b85bcc77ec65320faa40113750b79d08aa77ce5a5e721b40",
+    "path": "project/.histwrite/artifacts/cards.v2.json",
+    "builtAt": "2026-03-12T00:00:00.000Z"
+  },
+  "qaV1": {
+    "artifactId": "sha256:9efd2d391611059303990f970fd81a3223cd820c395691caf26dcd09219f4717",
+    "sha256": "9efd2d391611059303990f970fd81a3223cd820c395691caf26dcd09219f4717",
+    "path": "project/.histwrite/artifacts/qa.v1.json",
+    "builtAt": "2026-03-12T00:00:00.000Z"
+  },
+  "packsV1": {
+    "artifactId": "sha256:e3131f39e184df04b853bc2f18ac8ee427c88989aac5fc3ac6ee4cb619fab2ca",
+    "sha256": "e3131f39e184df04b853bc2f18ac8ee427c88989aac5fc3ac6ee4cb619fab2ca",
+    "path": "project/.histwrite/artifacts/section.s1.pack.v1.json",
+    "builtAt": "2026-03-12T00:00:00.000Z"
+  }
+}

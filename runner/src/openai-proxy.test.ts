@@ -170,4 +170,63 @@ describe("openai-proxy", () => {
       await new Promise<void>((resolve) => upstream.close(() => resolve()));
     }
   });
+
+  it("retries upstream 503 through the scheduler and still returns a completion", async () => {
+    let calls = 0;
+    const upstream = createServer(async (req, res) => {
+      if (req.method !== "POST" || req.url !== "/v1/responses") {
+        res.writeHead(404);
+        res.end("not found");
+        return;
+      }
+
+      calls += 1;
+      if (calls === 1) {
+        res.writeHead(503, { "Content-Type": "application/json" });
+        res.end("{\"error\":\"temporary unavailable\"}");
+        return;
+      }
+
+      res.writeHead(200, { "Content-Type": "text/event-stream" });
+      res.write("event: response.output_text.delta\n");
+      res.write("data: {\"type\":\"response.output_text.delta\",\"delta\":\"retry-ok\"}\n\n");
+      res.end();
+    });
+
+    const upstreamPort = await new Promise<number>((resolve, reject) => {
+      upstream.listen(0, "127.0.0.1", () => resolve((upstream.address() as AddressInfo).port));
+      upstream.once("error", reject);
+    });
+
+    const { server: proxy, url } = await startOpenAiCompatProxy({
+      listenHost: "127.0.0.1",
+      port: 0,
+      upstreamBaseUrl: `http://127.0.0.1:${upstreamPort}`,
+      upstreamApiKey: "up",
+      defaultModel: "m",
+      scheduler: {
+        maxConcurrency: 1,
+        maxRetries: 2,
+        baseDelayMs: 1,
+        maxDelayMs: 2,
+        jitterRatio: 0,
+      },
+    });
+
+    try {
+      const res = await fetch(`${url}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "m", messages: [{ role: "user", content: "retry" }] }),
+      });
+
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as any;
+      expect(json?.choices?.[0]?.message?.content).toBe("retry-ok");
+      expect(calls).toBe(2);
+    } finally {
+      await new Promise<void>((resolve) => proxy.close(() => resolve()));
+      await new Promise<void>((resolve) => upstream.close(() => resolve()));
+    }
+  });
 });

@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "claims": [
+    {
+      "claimId": "c1",
+      "kind": "causal",
+      "text": "1902年前后地方财政调整的启动，并不是抽象改革口号先行，而是盐课亏空、州县库款散漫以及常年支出难以周转的压力叠加所致。",
+      "evidenceRefs": [
+        {
+          "cardId": "c1",
+          "evidenceId": "c1",
+          "raw": "c1:c1",
+          "valid": true
+        },
+        {
+          "cardId": "c2",
+          "evidenceId": "c2",
+          "raw": "c2:c2",
+          "valid": true
+        },
+        {
+          "cardId": "c4",
+          "evidenceId": "c4",
+          "raw": "c4:c4",
+          "valid": true
+        }
+      ],
+      "timeHint": "1902年",
+      "riskFlags": []
+    },
+    {
+      "claimId": "c2",
+      "kind": "causal",
+      "text": "在这种背景下，调整首先表现为整账而非立刻加派。上谕所说“先清旧欠，次定新章”，把处理顺序讲得很清楚：先把旧欠、浮收和杂项名目压缩到可以核对的范围，再谈后续制度。州县禀稿强调“州县库款散漫”，各房各项名目不一，因此先并归一册、辨明旧欠，才可能知道哪些款项可以续征，哪些只是一时摊派。",
+      "evidenceRefs": [
+        {
+          "cardId": "c3",
+          "evidenceId": "c3",
+          "raw": "c3:c3",
+          "valid": true
+        },
+        {
+          "cardId": "c4",
+          "evidenceId": "c4",
+          "raw": "c4:c4",
+          "valid": true
+        }
+      ],
+      "riskFlags": []
+    },
+    {
+      "claimId": "c3",
+      "kind": "causal",
+      "text": "更重要的是，地方社会并不支持借机立即增设新附加。绅士公呈明确提出，民间但求缓征新附加，若先清旧欠，则地方尚可稍苏；这与上谕中“不得以新增名色扰民”的边界互相呼应。由此可见，1902年的财政调整是一种带有防守性质的整顿：它先从清旧账、统一册籍、调剂征收节次入手，再为后续制度安排腾挪空间。",
+      "evidenceRefs": [
+        {
+          "cardId": "c6",
+          "evidenceId": "c6",
+          "raw": "c6:c6",
+          "valid": true
+        },
+        {
+          "cardId": "c3",
+          "evidenceId": "c3",
+          "raw": "c3:c3",
+          "valid": true
+        }
+      ],
+      "timeHint": "1902年",
+      "riskFlags": []
+    }
+  ],
+  "claimSet": {
+    "version": 1,
+    "claims": [
+      {
+        "claimId": "c1",
+        "signature": "sha256:bdfc74052325282266e99b8d934a55a900dcf40cb2c504003901b03d129869f3"
+      },
+      {
+        "claimId": "c2",
+        "signature": "sha256:8620d7dd8ecea602b28ba0d025a79f3dae781fca4f1d3fa4f5f9b84b8fe27716"
+      },
+      {
+        "claimId": "c3",
+        "signature": "sha256:146d8adbaa45055e5aa66d0a1234d74b2a05ee6675dcecb10035892e14a25e8f"
+      }
+    ]
+  },
+  "createdAt": "2026-03-12T00:00:00.000Z",
+  "draftPath": "project/正文/section.s1.md",
+  "packPath": "project/.histwrite/artifacts/section.s1.pack.v1.json",
+  "packId": "pack_3727c4f9059d5af0",
+  "sectionId": "s1"
+}

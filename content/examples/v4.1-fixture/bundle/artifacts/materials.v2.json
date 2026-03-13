@@ -1,0 +1,96 @@
+{
+  "version": 2,
+  "selectorContractVersion": 1,
+  "materials": [
+    {
+      "materialId": "m1",
+      "provenance": {
+        "kind": "archive",
+        "title": "按察司咨文摘录",
+        "sourcePath": "材料/01-按察司咨文摘录.txt",
+        "sourceSha256": "sha256:m1-source",
+        "textPath": "材料/01-按察司咨文摘录.txt",
+        "textSha256": "sha256:m1-text"
+      },
+      "rawText": "光绪二十八年二月，按察司在咨文中称：地方财政调整已经开始，州县应先清册库款，再酌减浮收。\n",
+      "normText": "光绪二十八年二月，按察司在咨文中称：地方财政调整已经开始，州县应先清册库款，再酌减浮收。\n",
+      "indexText": "光绪二十八年二月，按察司在咨文中称：地方财政调整已经开始，州县应先清册库款，再酌减浮收。\n",
+      "selectorContractVersion": 1
+    },
+    {
+      "materialId": "m2",
+      "provenance": {
+        "kind": "archive",
+        "title": "盐课册摘录",
+        "sourcePath": "材料/02-盐课册摘录.txt",
+        "sourceSha256": "sha256:m2-source",
+        "textPath": "材料/02-盐课册摘录.txt",
+        "textSha256": "sha256:m2-text"
+      },
+      "rawText": "同年六月，盐课册记曰：盐课亏空已达三万两，旧欠积压，催征日急。\n",
+      "normText": "同年六月，盐课册记曰：盐课亏空已达三万两，旧欠积压，催征日急。\n",
+      "indexText": "同年六月，盐课册记曰：盐课亏空已达三万两，旧欠积压，催征日急。\n",
+      "selectorContractVersion": 1
+    },
+    {
+      "materialId": "m3",
+      "provenance": {
+        "kind": "archive",
+        "title": "上谕抄录",
+        "sourcePath": "材料/03-上谕抄录.txt",
+        "sourceSha256": "sha256:m3-source",
+        "textPath": "材料/03-上谕抄录.txt",
+        "textSha256": "sha256:m3-text"
+      },
+      "rawText": "七月上谕称：先清旧欠，次定新章，不得以新增名色扰民。\n",
+      "normText": "七月上谕称：先清旧欠，次定新章，不得以新增名色扰民。\n",
+      "indexText": "七月上谕称：先清旧欠，次定新章，不得以新增名色扰民。\n",
+      "selectorContractVersion": 1
+    },
+    {
+      "materialId": "m4",
+      "provenance": {
+        "kind": "archive",
+        "title": "州县禀稿",
+        "sourcePath": "材料/04-州县禀稿.txt",
+        "sourceSha256": "sha256:m4-source",
+        "textPath": "材料/04-州县禀稿.txt",
+        "textSha256": "sha256:m4-text"
+      },
+      "rawText": "某州禀稿说：州县库款散漫，各房各项名目不一，故议并归一册。\n",
+      "normText": "某州禀稿说：州县库款散漫，各房各项名目不一，故议并归一册。\n",
+      "indexText": "某州禀稿说：州县库款散漫，各房各项名目不一，故议并归一册。\n",
+      "selectorContractVersion": 1
+    },
+    {
+      "materialId": "m5",
+      "provenance": {
+        "kind": "archive",
+        "title": "河工经费清单",
+        "sourcePath": "材料/05-河工经费清单.txt",
+        "sourceSha256": "sha256:m5-source",
+        "textPath": "材料/05-河工经费清单.txt",
+        "textSha256": "sha256:m5-text"
+      },
+      "rawText": "河工经费清单写道：河工经费与常年支出并列，若不调剂征收节次，则秋防经费无着。\n",
+      "normText": "河工经费清单写道：河工经费与常年支出并列，若不调剂征收节次，则秋防经费无着。\n",
+      "indexText": "河工经费清单写道：河工经费与常年支出并列，若不调剂征收节次，则秋防经费无着。\n",
+      "selectorContractVersion": 1
+    },
+    {
+      "materialId": "m6",
+      "provenance": {
+        "kind": "archive",
+        "title": "绅士公呈",
+        "sourcePath": "材料/06-绅士公呈.txt",
+        "sourceSha256": "sha256:m6-source",
+        "textPath": "材料/06-绅士公呈.txt",
+        "textSha256": "sha256:m6-text"
+      },
+      "rawText": "绅士公呈提出：民间但求缓征新附加，若先清旧欠，则地方亦可稍苏。\n",
+      "normText": "绅士公呈提出：民间但求缓征新附加，若先清旧欠，则地方亦可稍苏。\n",
+      "indexText": "绅士公呈提出：民间但求缓征新附加，若先清旧欠，则地方亦可稍苏。\n",
+      "selectorContractVersion": 1
+    }
+  ]
+}

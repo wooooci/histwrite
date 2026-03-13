@@ -24,6 +24,12 @@ node runner/bin/histwrite.mjs --help
 node --import tsx runner/src/cli.ts --help
 ```
 
+## 出版级工作流（v4.1）
+
+若你要在本仓库推进“出版级/门禁式”的 v4.1 工作流（Selector Contract / Claim→Evidence→Citation / Gates / Weaver / QA Dataset），从这里开始读：
+
+- `docs/plans/2026-03-11-histwrite-publication-workflow-v4.1-master.md`
+
 ## 增强浏览器模式
 
 若宿主需要登录态浏览器检索，可额外启用 `relay/`。

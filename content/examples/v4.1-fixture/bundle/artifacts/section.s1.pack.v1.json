@@ -1,0 +1,211 @@
+{
+  "version": 1,
+  "createdAt": "2026-03-12T14:57:19.796Z",
+  "packId": "pack_3727c4f9059d5af0",
+  "blueprintRef": {
+    "artifactId": "sha256:b108bcf3f458f5e0c5a5bbc5436756e7511f81f54d520fdf0e816084a1fc3325",
+    "sha256": "b108bcf3f458f5e0c5a5bbc5436756e7511f81f54d520fdf0e816084a1fc3325",
+    "path": "/Users/woooci/Downloads/histwrite/content/examples/v4.1-fixture/project/蓝图/blueprint.v2.json",
+    "builtAt": "2026-03-12T14:57:19.796Z"
+  },
+  "sectionId": "s1",
+  "timeWindow": {
+    "start": "1901",
+    "end": "1904"
+  },
+  "textWindow": {
+    "topic": "地方财政调整的启动"
+  },
+  "cards": [
+    {
+      "cardId": "c3",
+      "selectedEvidenceIds": [
+        "c3"
+      ],
+      "selectorBundles": [
+        {
+          "quote": {
+            "type": "TextQuoteSelector",
+            "layer": "rawText",
+            "exact": "先清旧欠，次定新章"
+          }
+        }
+      ],
+      "resolvedSpans": [
+        {
+          "rawStart": 6,
+          "rawEnd": 15,
+          "extractedExactRaw": "先清旧欠，次定新章",
+          "method": "quote_anchored"
+        }
+      ]
+    },
+    {
+      "cardId": "c2",
+      "selectedEvidenceIds": [
+        "c2"
+      ],
+      "selectorBundles": [
+        {
+          "quote": {
+            "type": "TextQuoteSelector",
+            "layer": "rawText",
+            "exact": "盐课亏空已达三万两"
+          }
+        }
+      ],
+      "resolvedSpans": [
+        {
+          "rawStart": 11,
+          "rawEnd": 20,
+          "extractedExactRaw": "盐课亏空已达三万两",
+          "method": "quote_anchored"
+        }
+      ]
+    },
+    {
+      "cardId": "c1",
+      "selectedEvidenceIds": [
+        "c1"
+      ],
+      "selectorBundles": [
+        {
+          "quote": {
+            "type": "TextQuoteSelector",
+            "layer": "rawText",
+            "exact": "地方财政调整已经开始"
+          }
+        }
+      ],
+      "resolvedSpans": [
+        {
+          "rawStart": 18,
+          "rawEnd": 28,
+          "extractedExactRaw": "地方财政调整已经开始",
+          "method": "quote_anchored"
+        }
+      ]
+    },
+    {
+      "cardId": "c4",
+      "selectedEvidenceIds": [
+        "c4"
+      ],
+      "selectorBundles": [
+        {
+          "quote": {
+            "type": "TextQuoteSelector",
+            "layer": "rawText",
+            "exact": "州县库款散漫"
+          }
+        }
+      ],
+      "resolvedSpans": [
+        {
+          "rawStart": 6,
+          "rawEnd": 12,
+          "extractedExactRaw": "州县库款散漫",
+          "method": "quote_anchored"
+        }
+      ]
+    },
+    {
+      "cardId": "c6",
+      "selectedEvidenceIds": [
+        "c6"
+      ],
+      "selectorBundles": [
+        {
+          "quote": {
+            "type": "TextQuoteSelector",
+            "layer": "rawText",
+            "exact": "民间但求缓征新附加"
+          }
+        }
+      ],
+      "resolvedSpans": [
+        {
+          "rawStart": 7,
+          "rawEnd": 16,
+          "extractedExactRaw": "民间但求缓征新附加",
+          "method": "quote_anchored"
+        }
+      ]
+    }
+  ],
+  "qa": [
+    {
+      "qaId": "q1",
+      "question": "地方财政调整为何在1902年前后启动？",
+      "answer": "因为盐课亏空、旧欠积压与州县库款散漫同时暴露，地方不得不先清账再调整征收次序。",
+      "evidenceRefs": [
+        {
+          "cardId": "c1",
+          "materialId": "m1",
+          "selectorBundle": {
+            "quote": {
+              "type": "TextQuoteSelector",
+              "layer": "rawText",
+              "exact": "地方财政调整已经开始"
+            }
+          }
+        },
+        {
+          "cardId": "c2",
+          "materialId": "m2",
+          "selectorBundle": {
+            "quote": {
+              "type": "TextQuoteSelector",
+              "layer": "rawText",
+              "exact": "盐课亏空已达三万两"
+            }
+          }
+        },
+        {
+          "cardId": "c4",
+          "materialId": "m4",
+          "selectorBundle": {
+            "quote": {
+              "type": "TextQuoteSelector",
+              "layer": "rawText",
+              "exact": "州县库款散漫"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "qaId": "q2",
+      "question": "调整的原则与边界是什么？",
+      "answer": "原则是先清旧欠、再定新章，并避免借机新增名色扰民。",
+      "evidenceRefs": [
+        {
+          "cardId": "c3",
+          "materialId": "m3",
+          "selectorBundle": {
+            "quote": {
+              "type": "TextQuoteSelector",
+              "layer": "rawText",
+              "exact": "先清旧欠，次定新章"
+            }
+          }
+        },
+        {
+          "cardId": "c6",
+          "materialId": "m6",
+          "selectorBundle": {
+            "quote": {
+              "type": "TextQuoteSelector",
+              "layer": "rawText",
+              "exact": "民间但求缓征新附加"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "constraints": {
+    "finalMissingGapsBlock": true,
+    "noNewClaims": true
+  }
+}
