@@ -1,6 +1,7 @@
 import { parsePlatformMatrixRow, type DownloadMode, type PlatformId, type PlatformMatrixRow, type SupportStatus } from "./contract.js";
 import { normalizeGuideName, splitMergedGuideEntries, type GuideEntryLike } from "./guide-cleaning.js";
-import { hydrateUmichHitsWithVendorLanding as hydrateVendorLandingHits } from "./vendor-landing.js";
+import { hydrateUmichHitsWithVendorLanding as hydrateVendorLandingHits, resolveVendorLandingForHit } from "./vendor-landing.js";
+import { resolveCatalogPlatformHint, type UmichCatalogEntry } from "./umich-csv.js";
 
 export type UmichEntryKind = "umich_database_link" | "umich_proxy_login" | "umich_search" | "direct_vendor";
 type PlatformSource = "host" | "name" | "fallback";
@@ -146,6 +147,61 @@ function scoreNameSimilarity(left: string, right: string): number {
 
   if (overlap >= 3 && dice >= 0.75) return 300 + overlap * 10;
   return 0;
+}
+
+function extractStateDepartmentLocation(value: string | null): string | null {
+  if (!value) return null;
+  const normalized = String(value).replace(/\s+/g, " ").trim();
+  const match = normalized.match(/^(.+?):\s*Records of the U\.?S\.?\s+Department of State/i);
+  if (!match?.[1]) return null;
+  return normalizeGuideName(match[1]);
+}
+
+function hasCountryConflict(left: string | null, right: string | null): boolean {
+  const leftCountry = extractStateDepartmentLocation(left);
+  const rightCountry = extractStateDepartmentLocation(right);
+  return Boolean(leftCountry && rightCountry && leftCountry !== rightCountry);
+}
+
+function scoreCatalogBackfillCandidate(guideName: string, title: string): number {
+  const left = normalizeGuideName(guideName);
+  const right = normalizeGuideName(title);
+  if (!left || !right) return 0;
+  if (hasCountryConflict(guideName, title)) return 0;
+  if (left === right) return 1000;
+  if (left.includes(right) || right.includes(left)) return 850;
+
+  const overlap = countTokenOverlap(left, right);
+  const dice = tokenDiceCoefficient(left, right);
+
+  if (overlap >= 4 && dice >= 0.82) return 780;
+  if (overlap >= 3 && dice >= 0.9) return 760;
+  return 0;
+}
+
+function findCatalogBackfillCandidate(guideName: string, entries: UmichCatalogEntry[]): UmichCatalogEntry | null {
+  let best: { entry: UmichCatalogEntry; score: number } | null = null;
+  let secondBestScore = 0;
+
+  for (const entry of entries) {
+    const title = readNullableString(entry.title);
+    if (!title) continue;
+    const score = scoreCatalogBackfillCandidate(guideName, title);
+    if (score <= 0) continue;
+
+    if (!best || score > best.score) {
+      secondBestScore = best?.score ?? secondBestScore;
+      best = { entry, score };
+      continue;
+    }
+
+    if (score > secondBestScore) secondBestScore = score;
+  }
+
+  if (!best) return null;
+  if (best.score < 760) return null;
+  if (best.score < 1000 && secondBestScore >= best.score - 40) return null;
+  return best.entry;
 }
 
 function defaultDownloadModeForPlatform(platform: PlatformId): DownloadMode {
@@ -314,6 +370,89 @@ export function matchGuideEntriesToUmichHits(
       notes: guideNotes,
     });
   });
+}
+
+export type BackfillPlatformMatrixRowsDeps = {
+  resolveHit?: (hit: UmichHitLike) => Promise<UmichHitLike>;
+};
+
+export async function backfillPlatformMatrixRowsFromCatalog(
+  rows: PlatformMatrixRow[],
+  catalogEntries: UmichCatalogEntry[],
+  deps: BackfillPlatformMatrixRowsDeps = {},
+): Promise<PlatformMatrixRow[]> {
+  const out: PlatformMatrixRow[] = [];
+
+  for (const row of rows) {
+    if (row.status !== "manual_required" || row.umichHit) {
+      out.push(row);
+      continue;
+    }
+
+    const candidate = findCatalogBackfillCandidate(row.guideName, catalogEntries);
+    if (!candidate) {
+      out.push(row);
+      continue;
+    }
+
+    const candidateTitle = readNullableString(candidate.title);
+    const candidateDdmLink = readNullableString(candidate.ddmLink);
+    const candidatePlatformHint = resolveCatalogPlatformHint(candidate);
+    const hasBackfillSignal = Boolean(
+      candidateDdmLink ||
+        candidatePlatformHint !== "fallback" ||
+        readNullableString(candidate.platformLabel) ||
+        readNullableString(candidate.vendorHint) ||
+        readNullableString(candidate.companyGuess),
+    );
+
+    if (!candidateTitle || !hasBackfillSignal) {
+      out.push(row);
+      continue;
+    }
+
+    let resolvedHit: UmichHitLike = {
+      title: candidateTitle,
+      name: candidateTitle,
+      url: candidateDdmLink,
+      notes: row.notes,
+    };
+
+    if (candidateDdmLink) {
+      resolvedHit = deps.resolveHit
+        ? await deps.resolveHit(resolvedHit)
+        : await resolveVendorLandingForHit(resolvedHit);
+    }
+
+    const landingUrl = resolveLandingUrl(resolvedHit) ?? candidateDdmLink;
+    const landingHost = resolveLandingHost(resolvedHit);
+    const platformFromLanding = resolvePlatformFromHostOrName({
+      host: landingHost,
+      name: candidateTitle,
+    });
+    const platform =
+      platformFromLanding !== "fallback"
+        ? platformFromLanding
+        : candidatePlatformHint !== "fallback"
+          ? candidatePlatformHint
+          : row.platform;
+
+    out.push(
+      parsePlatformMatrixRow({
+        guideName: row.guideName,
+        guideCode: row.guideCode,
+        umichHit: candidateTitle,
+        landingUrl,
+        landingHost,
+        platform,
+        downloadMode: defaultDownloadModeForPlatform(platform),
+        status: defaultStatusForPlatform(platform, true),
+        notes: row.notes,
+      }),
+    );
+  }
+
+  return out;
 }
 
 function tsvCell(value: string | null): string {
