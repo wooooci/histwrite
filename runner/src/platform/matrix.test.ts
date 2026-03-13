@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  backfillPlatformMatrixRowsFromCatalog,
   classifyUmichEntryKind,
   extractUmichHits,
   hydrateUmichHitsWithVendorLanding,
@@ -8,6 +9,7 @@ import {
   renderPlatformMatrixTsv,
   resolvePlatformFromHostOrName,
 } from "./matrix.js";
+import { parseUmichCatalogCsv } from "./umich-csv.js";
 
 describe("platform matrix builder", () => {
   it("classifies UMich directory URLs before matching", () => {
@@ -168,14 +170,8 @@ describe("platform matrix builder", () => {
         },
       ],
       {
-        fetchImpl: async () =>
-          new Response("", {
-            status: 302,
-            headers: {
-              location:
-                "https://proxy.lib.umich.edu/login?qurl=http%3A%2F%2Ffind.galegroup.com%2Fmenu%2Fstart%3FuserGroupName%3Dumuser%26prod%3DWHIC",
-            },
-          }),
+        resolveViaRelay: async () =>
+          "https://proxy.lib.umich.edu/login?qurl=http%3A%2F%2Ffind.galegroup.com%2Fmenu%2Fstart%3FuserGroupName%3Dumuser%26prod%3DWHIC",
       },
     );
 
@@ -184,6 +180,28 @@ describe("platform matrix builder", () => {
       umichHit: "World History in Context",
       landingHost: "find.galegroup.com",
       platform: "gale",
+      status: "planned",
+    });
+  });
+
+  it("backfills manual rows from richer UMich csv catalog rows", async () => {
+    const baseRows = matchGuideEntriesToUmichHits([{ guideName: "ProQuest Research Library (PRL)" }], []);
+    const csvRows = parseUmichCatalogCsv(`title,platform,vendor_hint,company_guess,ddm_link,access_type
+"ProQuest Research Library","ProQuest",,"ProQuest (Clarivate)","https://ddm.dnd.lib.umich.edu/database/link/9851","Authorized U-M users (+ guests in U-M Libraries)"
+`);
+
+    const rows = await backfillPlatformMatrixRowsFromCatalog(baseRows, csvRows, {
+      resolveHit: async (hit) => ({
+        ...hit,
+        resolvedUrl: "https://www.proquest.com/advanced?accountid=14667",
+      }),
+    });
+
+    expect(rows[0]).toMatchObject({
+      guideName: "ProQuest Research Library (PRL)",
+      umichHit: "ProQuest Research Library",
+      landingHost: "www.proquest.com",
+      platform: "proquest",
       status: "planned",
     });
   });

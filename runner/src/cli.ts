@@ -29,14 +29,22 @@ import { runWeaveCommand } from "./weave/command.js";
 import { runFinalizeCommand } from "./finalize/finalize.js";
 import { runFixtureEval } from "./e2e/harness.js";
 import { parsePlatformMatrixRow } from "./platform/contract.js";
+import {
+  classifyPlatformResolutionRows,
+  renderPlatformResolutionClassificationMarkdown,
+  renderPlatformResolutionClassificationTsv,
+  summarizePlatformResolutionClassification,
+} from "./platform/classification.js";
 import { dispatchPlatformDownload } from "./platform/dispatch.js";
 import {
+  backfillPlatformMatrixRowsFromCatalog,
   extractUmichHits,
   hydrateUmichHitsWithVendorLanding,
   matchGuideEntriesToUmichHits,
   renderPlatformMatrixMarkdown,
   renderPlatformMatrixTsv,
 } from "./platform/matrix.js";
+import { parseUmichCatalogCsv } from "./platform/umich-csv.js";
 
 function usage(exitCode = 0) {
   const msg = [
@@ -46,7 +54,8 @@ function usage(exitCode = 0) {
     "  histwrite index --project <dir> [--materials <dir>]",
     "  histwrite library index|status --project <dir> [--materials <dir>]",
     "  histwrite materials build|status --project <dir> [--materials <dir>]",
-    "  histwrite platform matrix --project <dir> --guide-json <path> --umich-json <path> [--no-resolve-landing]",
+    "  histwrite platform matrix --project <dir> --guide-json <path> --umich-json <path> [--umich-csv <path>] [--no-resolve-landing]",
+    "  histwrite platform classify --project <dir> [--umich-csv <path>]",
     "  histwrite sources matrix|platform-plan|download --project <dir> [--platform <id>] [--mode <mode>]",
     "  histwrite interpret --project <dir> [--materials <path>] [--out <path>] [--materialId <id>] [--maxItems <n>] [--model <id>] [--apiBaseUrl <url>] [--apiKeyEnv <env>] [--opencode] [--opencodeConfig <path>] [--opencodeModel <provider/model>] [--opencodeProvider <provider>] [--endpoint auto|chat|responses] [--timeoutMs <n>] [--maxTokens <n>] [--temperature <n>] [--no-cache]",
     "  histwrite qa build --project <dir> [--materials <path>] [--cards <path>] [--out <path>] [--cardId <id>] [--maxItems <n>] [--model <id>] [--apiBaseUrl <url>] [--apiKeyEnv <env>] [--opencode] [--opencodeConfig <path>] [--opencodeModel <provider/model>] [--opencodeProvider <provider>] [--endpoint auto|chat|responses] [--timeoutMs <n>] [--maxTokens <n>] [--temperature <n>] [--no-cache]",
@@ -144,16 +153,25 @@ async function runPlatformMatrix(projectDir: string) {
   const guideJsonPath = readArg("--guide-json");
   const umichJsonPath = readArg("--umich-json");
   if (!guideJsonPath || !umichJsonPath) usage(2);
+  const umichCsvPath = readArg("--umich-csv");
 
   const guideInput = JSON.parse(await fs.readFile(path.resolve(guideJsonPath), "utf8")) as unknown;
   const umichInput = JSON.parse(await fs.readFile(path.resolve(umichJsonPath), "utf8")) as unknown;
+  const catalogRows = umichCsvPath ? parseUmichCatalogCsv(await fs.readFile(path.resolve(umichCsvPath), "utf8")) : [];
 
   const guideEntries = extractObjectArray(guideInput, "guide-json");
   const baseUmichHits = extractUmichHits(umichInput);
   const umichHits = hasFlag("--no-resolve-landing")
     ? baseUmichHits
-    : await hydrateUmichHitsWithVendorLanding(baseUmichHits);
-  const rows = matchGuideEntriesToUmichHits(guideEntries, umichHits);
+    : await hydrateUmichHitsWithVendorLanding(baseUmichHits, { concurrency: 4 });
+  const matchedRows = matchGuideEntriesToUmichHits(guideEntries, umichHits);
+  const rows = catalogRows.length === 0
+    ? matchedRows
+    : await backfillPlatformMatrixRowsFromCatalog(matchedRows, catalogRows, {
+        resolveHit: hasFlag("--no-resolve-landing")
+          ? undefined
+          : async (hit) => await hydrateUmichHitsWithVendorLanding([hit]).then((items) => items[0] ?? hit),
+      });
 
   const jsonPath = path.join(layout.materialsIndexDir, "umich_platform_matrix.json");
   const tsvPath = path.join(layout.materialsIndexDir, "umich_platform_matrix.tsv");
@@ -164,6 +182,7 @@ async function runPlatformMatrix(projectDir: string) {
     projectDir: layout.projectDir,
     guideJsonPath: path.resolve(guideJsonPath),
     umichJsonPath: path.resolve(umichJsonPath),
+    umichCsvPath: umichCsvPath ? path.resolve(umichCsvPath) : null,
     rowCount: rows.length,
     rows,
   };
@@ -177,6 +196,45 @@ async function runPlatformMatrix(projectDir: string) {
       ok: true,
       projectDir: layout.projectDir,
       rowCount: rows.length,
+      jsonPath,
+      tsvPath,
+      mdPath,
+    }),
+  );
+  process.exit(0);
+}
+
+async function runPlatformClassify(projectDir: string) {
+  const stored = await readStoredPlatformMatrix(projectDir);
+  const umichCsvPath = readArg("--umich-csv");
+  const catalogRows = umichCsvPath ? parseUmichCatalogCsv(await fs.readFile(path.resolve(umichCsvPath), "utf8")) : [];
+  const rows = classifyPlatformResolutionRows(stored.rows, catalogRows);
+  const summary = summarizePlatformResolutionClassification(rows);
+
+  const jsonPath = path.join(stored.layout.materialsIndexDir, "umich_platform_resolution_classification.json");
+  const tsvPath = path.join(stored.layout.materialsIndexDir, "umich_platform_resolution_classification.tsv");
+  const mdPath = path.join(stored.layout.materialsIndexDir, "umich_platform_resolution_classification.md");
+
+  const jsonPayload = {
+    generatedAt: new Date().toISOString(),
+    projectDir: stored.layout.projectDir,
+    matrixJsonPath: stored.jsonPath,
+    umichCsvPath: umichCsvPath ? path.resolve(umichCsvPath) : null,
+    rowCount: rows.length,
+    summary,
+    rows,
+  };
+
+  await fs.writeFile(jsonPath, `${JSON.stringify(jsonPayload, null, 2)}\n`, "utf8");
+  await fs.writeFile(tsvPath, renderPlatformResolutionClassificationTsv(rows), "utf8");
+  await fs.writeFile(mdPath, renderPlatformResolutionClassificationMarkdown(rows), "utf8");
+
+  console.log(
+    JSON.stringify({
+      ok: true,
+      projectDir: stored.layout.projectDir,
+      rowCount: rows.length,
+      summary,
       jsonPath,
       tsvPath,
       mdPath,
@@ -1600,6 +1658,7 @@ if (cmd === "materials") {
 if (cmd === "platform") {
   const projectDir = readArg("--project") ?? process.cwd();
   if (sub === "matrix") await runPlatformMatrix(projectDir);
+  if (sub === "classify") await runPlatformClassify(projectDir);
   usage(2);
 }
 
