@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -38,7 +39,7 @@ describe("histwrite runner cli relay status", () => {
     const { stdout } = await execFileAsync(process.execPath, [
       "--import",
       "tsx",
-      path.resolve("runner/src/cli.ts"),
+      fileURLToPath(new URL("./cli.ts", import.meta.url)),
       "relay",
       "status",
       "--relay",

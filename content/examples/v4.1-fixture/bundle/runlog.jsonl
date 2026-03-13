@@ -1,0 +1,6 @@
+{"version":1,"name":"command_start","at":"2026-03-12T00:00:00.000Z","value":{"cmd":"fixture export"}}
+{"version":1,"name":"verify_begin","at":"2026-03-12T00:00:01.000Z","value":{"draftPath":"project/正文/section.s1.md"}}
+{"version":1,"name":"verify_done","at":"2026-03-12T00:00:02.000Z","value":{"blockers":0,"warnings":0}}
+{"version":1,"name":"finalcheck_done","at":"2026-03-12T00:00:03.000Z","value":{"placeholderCount":0}}
+{"version":1,"name":"export_begin","at":"2026-03-12T00:00:04.000Z","value":{"bundle":"content/examples/v4.1-fixture/bundle"}}
+{"version":1,"name":"command_end","at":"2026-03-12T00:00:05.000Z","value":{"ok":true}}

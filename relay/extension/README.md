@@ -4,8 +4,8 @@ Purpose: attach Codex to an existing Chrome tab so a local CDP relay server can 
 
 ## Dev / load unpacked
 
-1. Start the Codex relay server (default port: `18792`).
-2. Ensure the relay server is reachable at `http://127.0.0.1:18792/` (default).
+1. Start the Codex relay server (default port: `18992`).
+2. Ensure the relay server is reachable at `http://127.0.0.1:18992/` (default).
 3. Chrome → `chrome://extensions` → enable “Developer mode”.
 4. “Load unpacked” → select this folder:
    - `.../extensions/codex-browser-relay/extension`
@@ -15,5 +15,5 @@ Purpose: attach Codex to an existing Chrome tab so a local CDP relay server can 
 
 ## Options
 
-- `Relay port`: defaults to `18792`.
+- `Relay port`: defaults to `18992`.
 - `Auto-connect to relay`: keeps the local relay connection ready in the background.

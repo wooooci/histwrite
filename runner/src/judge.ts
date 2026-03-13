@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { cacheKey, createCasCache, sha256Hex, stableJsonStringify } from "./cache.js";
+import { selectNBest } from "./infra/batch.js";
 import type { HistwriteProjectLayout } from "./project.js";
 import { createEpisodesStore } from "./episodes.js";
 import { normalizeOpenAiCompatBaseUrl, openAiCompatGenerateText, parseJsonFromText } from "./openai-compat.js";
@@ -27,6 +28,11 @@ export type JudgeRank = {
 export type JudgeBestOfKResult = {
   chosenId: string;
   ranked: JudgeRank[];
+  selection: {
+    nBest: number;
+    selectedIds: string[];
+    reason: string;
+  };
   chosen?: {
     sectionSummary?: string;
     docSummary?: string;
@@ -204,11 +210,40 @@ function normalizeRanked(params: {
   return ranked;
 }
 
+function buildSelectionReason(params: { selected: JudgeRank[]; total: number }): string {
+  const picked = params.selected
+    .map((item, index) => `${index + 1}.${item.id}(score=${item.score.toFixed(2)}, pass=${item.pass ? "true" : "false"}): ${item.reason}`)
+    .join("；");
+  return `从 ${params.total} 个候选中选出 ${params.selected.length} 个：${picked}`;
+}
+
+function withSelection(result: Omit<JudgeBestOfKResult, "selection"> | JudgeBestOfKResult, topN: number): JudgeBestOfKResult {
+  const selected = selectNBest({
+    items: result.ranked,
+    limit: topN,
+    score: (item) => item.score,
+    isPass: (item) => item.pass,
+  });
+  const selectedIds = selected.map((item) => item.id);
+  const chosenId = selectedIds[0] ?? result.chosenId;
+
+  return {
+    ...result,
+    chosenId,
+    selection: {
+      nBest: topN,
+      selectedIds,
+      reason: buildSelectionReason({ selected, total: result.ranked.length }),
+    },
+  };
+}
+
 export async function runBestOfKJudge(params: {
   layout: HistwriteProjectLayout;
   sectionId: string;
   sectionTitle: string;
   candidatesDir: string;
+  topN?: number;
   rubricPath?: string | null;
   minPassScore?: number;
   maxCandidateChars?: number;
@@ -226,6 +261,7 @@ export async function runBestOfKJudge(params: {
 }): Promise<JudgeRunOutput> {
   const sectionId = params.sectionId.trim() || "section";
   const sectionTitle = params.sectionTitle.trim() || sectionId;
+  const topN = Math.max(1, Math.floor(params.topN ?? 1));
   const minPassScore = clampFloat(params.minPassScore ?? 0.6, 0.6, { min: 0, max: 1 });
   const maxCandidateChars = Math.max(200, Math.min(200_000, params.maxCandidateChars ?? 30_000));
 
@@ -242,12 +278,14 @@ export async function runBestOfKJudge(params: {
   const promptVersion = "judge_best_of_k_v1";
   const apiBaseUrlNormalized = normalizeOpenAiCompatBaseUrl(params.client.apiBaseUrl);
   const key = cacheKey({
+    taskName: "judge_best_of_k",
     model: params.client.model,
     promptVersion,
     inputs: {
       apiBaseUrl: apiBaseUrlNormalized,
       sectionId,
       sectionTitle,
+      topN,
       minPassScore,
       rubricSha,
       candidates: candidates.map((c) => ({ id: c.id, sha256: c.sha256 })).sort((a, b) => a.id.localeCompare(b.id)),
@@ -265,7 +303,7 @@ export async function runBestOfKJudge(params: {
   if (cached && cached.result && typeof cached.result === "object") {
     cacheHit = true;
     endpoint = cached.endpoint;
-    result = cached.result;
+    result = withSelection(cached.result, topN);
   } else {
     const judgeSystem = "你是 Histwrite 的 judge（奖励函数）。";
     const judgeInstruction = [
@@ -331,14 +369,14 @@ export async function runBestOfKJudge(params: {
             }
           : undefined;
 
-      result = { chosenId, ranked, ...(chosen ? { chosen } : {}) };
+      result = withSelection({ chosenId, ranked, ...(chosen ? { chosen } : {}) }, topN);
       if (!params.noCache) {
         await judgeCache.putJson(key, { endpoint, result });
       }
     } catch (err) {
       judgeError = err instanceof Error ? err.message : String(err);
       const fallbackId = candidates[0]!.id;
-      result = {
+      result = withSelection({
         chosenId: fallbackId,
         ranked: candidates.map((c, idx) => ({
           id: c.id,
@@ -346,7 +384,7 @@ export async function runBestOfKJudge(params: {
           pass: false,
           reason: "judge 失败，使用 fallback",
         })),
-      };
+      }, topN);
     }
   }
 
@@ -361,6 +399,7 @@ export async function runBestOfKJudge(params: {
     at: Date.now(),
     section: { id: sectionId, title: sectionTitle },
     k: candidates.length,
+    topN,
     promptVersion,
     cacheHit,
     ...(judgeError ? { judgeError } : {}),
@@ -372,6 +411,7 @@ export async function runBestOfKJudge(params: {
       ...(typeof params.client.maxTokens === "number" ? { maxTokens: params.client.maxTokens } : {}),
       timeoutMs: params.client.timeoutMs ?? 60_000,
       minPassScore,
+      topN,
     },
     rubric: { sha256: rubricSha, ...(rubricSource ? { source: rubricSource } : {}) },
     candidates: candidates.map((c) => ({ id: c.id, path: c.relPath, sha256: c.sha256, chars: c.chars })),
@@ -388,13 +428,15 @@ export async function runBestOfKJudge(params: {
     at: Date.now(),
     section: { id: sectionId, title: sectionTitle },
     k: candidates.length,
+    topN,
     cacheHit,
     ...(judgeError ? { judgeError } : {}),
     judgePath: toProjectRel(params.layout, judgePath),
-    judge: { apiBaseUrl: params.client.apiBaseUrl, model: params.client.model, endpoint, minPassScore },
+    judge: { apiBaseUrl: params.client.apiBaseUrl, model: params.client.model, endpoint, minPassScore, topN },
     candidates: candidates.map((c) => ({ id: c.id, path: c.relPath, sha256: c.sha256 })),
     ranked: result!.ranked,
     chosenId: result!.chosenId,
+    selection: result!.selection,
   };
   await episodes.append(episode);
 

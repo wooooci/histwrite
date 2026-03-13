@@ -9,9 +9,8 @@ function readNumberArg(flag: string): number | null {
   return n;
 }
 
-const port = readNumberArg("--port") ?? 18792;
+const port = readNumberArg("--port") ?? 18992;
 
 await startCodexBrowserRelayServer({ port });
 // Keep process alive; the relay server runs in the background.
 await new Promise(() => {});
-

@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { captureRelaySnapshot } from "./capture.js";
 import { ensureHistwriteProject } from "./project.js";
@@ -59,5 +59,40 @@ describe("captureRelaySnapshot", () => {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
   });
-});
 
+  it("falls back to relay port 18992 when relay base url is blank", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ok: true,
+          capturedAt: "2026-02-15T00:00:00.000Z",
+          tab: { sessionId: "cb-tab-2", targetId: "t2", title: "Blank Relay", url: "https://example.com/blank" },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        },
+      ),
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    try {
+      const tmp = await fs.mkdtemp(path.join(os.tmpdir(), `histwrite-capture-default-relay-${randomUUID()}-`));
+      const layout = await ensureHistwriteProject(path.join(tmp, "proj"));
+
+      await captureRelaySnapshot({
+        layout,
+        relayBaseUrl: "   ",
+        includePng: false,
+        includeText: false,
+        outDir: path.join(layout.materialsIndexDir, "snapshots"),
+      });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(String(fetchMock.mock.calls[0]?.[0] ?? "")).toContain("http://127.0.0.1:18992/snapshot");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});

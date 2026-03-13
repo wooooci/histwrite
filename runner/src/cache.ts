@@ -65,15 +65,17 @@ export async function createCasCache(dir: string): Promise<CasCache> {
 }
 
 export function cacheKey(params: {
+  taskName?: string;
   model: string;
   promptVersion: string;
   inputs: unknown;
 }): string {
+  const inputsHash = sha256Hex(stableJsonStringify(params.inputs));
   const normalized = stableJsonStringify({
-    model: params.model,
+    taskName: params.taskName ?? "",
     promptVersion: params.promptVersion,
-    inputs: params.inputs,
+    modelId: params.model,
+    inputsHash,
   });
   return sha256Hex(normalized);
 }
-

@@ -1,4 +1,4 @@
-const DEFAULT_PORT = 18792
+const DEFAULT_PORT = 18992
 const DEFAULT_AUTO_CONNECT = true
 
 function normalizeBool(value, fallback) {

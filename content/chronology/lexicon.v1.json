@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "lexicon.tax-reform",
+      "pattern": "税制改革",
+      "risk": "high_risk_needs_human_confirmation",
+      "category": "制度",
+      "note": "该术语在史料中常需具体化为税目、法令或改革阶段，默认视为高风险概括。"
+    },
+    {
+      "id": "lexicon.people-commune",
+      "pattern": "人民公社",
+      "risk": "hard_blocker",
+      "category": "制度",
+      "notBefore": 1958,
+      "note": "人民公社通常指 1958 年以后出现的制度语汇。"
+    },
+    {
+      "id": "lexicon.household-responsibility",
+      "pattern": "家庭联产承包责任制",
+      "risk": "hard_blocker",
+      "category": "制度",
+      "notBefore": 1978,
+      "note": "家庭联产承包责任制通常用于 1978 年后语境。"
+    },
+    {
+      "id": "lexicon.special-economic-zone",
+      "pattern": "经济特区",
+      "risk": "hard_blocker",
+      "category": "地名/制度",
+      "notBefore": 1980,
+      "note": "经济特区是 1980 年后才出现的制度/地理概念。"
+    },
+    {
+      "id": "lexicon.green-revolution",
+      "pattern": "绿色革命",
+      "risk": "high_risk_needs_human_confirmation",
+      "category": "作物/术语",
+      "notBefore": 1940,
+      "note": "绿色革命常带有特定时代和地区语义，需确认是否属于时代错置。"
+    }
+  ]
+}

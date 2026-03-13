@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "createdAt": "2026-03-12T14:59:08.253Z",
+  "items": [
+    {
+      "claimId": "c1",
+      "status": "supported",
+      "evidenceAlignment": "aligned",
+      "issues": []
+    },
+    {
+      "claimId": "c2",
+      "status": "supported",
+      "evidenceAlignment": "aligned",
+      "issues": []
+    },
+    {
+      "claimId": "c3",
+      "status": "supported",
+      "evidenceAlignment": "aligned",
+      "issues": []
+    }
+  ],
+  "blockers": 0,
+  "warnings": 0,
+  "issues": [],
+  "workOrders": []
+}

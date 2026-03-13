@@ -10,14 +10,14 @@
 ## 启动 Relay Server
 
 ```bash
-node --import tsx relay/index.ts --port 18792
+node --import tsx relay/index.ts --port 18992
 ```
 
 健康检查：
 
 ```bash
-curl -fsS -I http://127.0.0.1:18792/
-curl -fsS http://127.0.0.1:18792/extension/status
+curl -fsS -I http://127.0.0.1:18992/
+curl -fsS http://127.0.0.1:18992/extension/status
 ```
 
 ## 安装 Chrome 扩展（Load unpacked）
@@ -36,19 +36,19 @@ curl -fsS http://127.0.0.1:18792/extension/status
 - `POST /history`：写入结构化注记（例如数据库、关键词、字段、命中数）
 - CDP 兼容：
   - `GET /json/version`、`GET /json/list`
-  - `ws://127.0.0.1:18792/cdp`
+  - `ws://127.0.0.1:18992/cdp`
   - 可选查询参数：`?runId=<scan-1>&client=<histwrite-jstor>`，后续 CDP 命令会自动记入历史
 
 示例：抓取快照并落到文件
 
 ```bash
-curl -fsS "http://127.0.0.1:18792/snapshot?png=1&text=1&maxChars=200000" > /tmp/snapshot.json
+curl -fsS "http://127.0.0.1:18992/snapshot?png=1&text=1&maxChars=200000" > /tmp/snapshot.json
 ```
 
 示例：写入一条检索注记
 
 ```bash
-curl -fsS http://127.0.0.1:18792/history \
+curl -fsS http://127.0.0.1:18992/history \
   -H 'content-type: application/json' \
   --data-binary @- <<'EOF'
 {
@@ -69,5 +69,5 @@ EOF
 示例：读取最近的审计历史
 
 ```bash
-curl -fsS 'http://127.0.0.1:18792/history?runId=scan-1&limit=20'
+curl -fsS 'http://127.0.0.1:18992/history?runId=scan-1&limit=20'
 ```

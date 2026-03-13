@@ -1,0 +1,127 @@
+{
+  "version": 2,
+  "createdAt": "2026-03-12T00:00:00.000Z",
+  "selectorContractVersion": 1,
+  "cards": [
+    {
+      "cardId": "c1",
+      "materialId": "m1",
+      "fact": "1902年春地方财政调整已被地方官正式提上议程。",
+      "level": "direct",
+      "confidence": 0.95,
+      "selectorBundle": {
+        "quote": {
+          "type": "TextQuoteSelector",
+          "layer": "rawText",
+          "exact": "地方财政调整已经开始"
+        }
+      },
+      "resolvedSpan": {
+        "rawStart": 18,
+        "rawEnd": 28,
+        "extractedExactRaw": "地方财政调整已经开始",
+        "method": "quote_anchored"
+      }
+    },
+    {
+      "cardId": "c2",
+      "materialId": "m2",
+      "fact": "盐课亏空与旧欠积压构成地方财政整顿的直接压力。",
+      "level": "direct",
+      "confidence": 0.93,
+      "selectorBundle": {
+        "quote": {
+          "type": "TextQuoteSelector",
+          "layer": "rawText",
+          "exact": "盐课亏空已达三万两"
+        }
+      },
+      "resolvedSpan": {
+        "rawStart": 11,
+        "rawEnd": 20,
+        "extractedExactRaw": "盐课亏空已达三万两",
+        "method": "quote_anchored"
+      }
+    },
+    {
+      "cardId": "c3",
+      "materialId": "m3",
+      "fact": "朝廷明确要求先清旧欠，再定新章。",
+      "level": "direct",
+      "confidence": 0.96,
+      "selectorBundle": {
+        "quote": {
+          "type": "TextQuoteSelector",
+          "layer": "rawText",
+          "exact": "先清旧欠，次定新章"
+        }
+      },
+      "resolvedSpan": {
+        "rawStart": 6,
+        "rawEnd": 15,
+        "extractedExactRaw": "先清旧欠，次定新章",
+        "method": "quote_anchored"
+      }
+    },
+    {
+      "cardId": "c4",
+      "materialId": "m4",
+      "fact": "州县库款条目散漫，必须先统一册籍。",
+      "level": "direct",
+      "confidence": 0.92,
+      "selectorBundle": {
+        "quote": {
+          "type": "TextQuoteSelector",
+          "layer": "rawText",
+          "exact": "州县库款散漫"
+        }
+      },
+      "resolvedSpan": {
+        "rawStart": 6,
+        "rawEnd": 12,
+        "extractedExactRaw": "州县库款散漫",
+        "method": "quote_anchored"
+      }
+    },
+    {
+      "cardId": "c5",
+      "materialId": "m5",
+      "fact": "河工与常年支出并列，迫使地方重新安排征收节次。",
+      "level": "inference",
+      "confidence": 0.78,
+      "selectorBundle": {
+        "quote": {
+          "type": "TextQuoteSelector",
+          "layer": "rawText",
+          "exact": "调剂征收节次"
+        }
+      },
+      "resolvedSpan": {
+        "rawStart": 23,
+        "rawEnd": 29,
+        "extractedExactRaw": "调剂征收节次",
+        "method": "quote_anchored"
+      }
+    },
+    {
+      "cardId": "c6",
+      "materialId": "m6",
+      "fact": "地方舆论支持先清旧欠，而非立刻增设新附加。",
+      "level": "direct",
+      "confidence": 0.88,
+      "selectorBundle": {
+        "quote": {
+          "type": "TextQuoteSelector",
+          "layer": "rawText",
+          "exact": "民间但求缓征新附加"
+        }
+      },
+      "resolvedSpan": {
+        "rawStart": 7,
+        "rawEnd": 16,
+        "extractedExactRaw": "民间但求缓征新附加",
+        "method": "quote_anchored"
+      }
+    }
+  ]
+}

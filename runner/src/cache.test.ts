@@ -11,11 +11,13 @@ describe("cache", () => {
 
   it("cacheKey is stable across input key order changes", () => {
     const k1 = cacheKey({
+      taskName: "cache_test",
       model: "gpt-5.2",
       promptVersion: "v1",
       inputs: { b: 1, a: { d: 2, c: 3 } },
     });
     const k2 = cacheKey({
+      taskName: "cache_test",
       model: "gpt-5.2",
       promptVersion: "v1",
       inputs: { a: { c: 3, d: 2 }, b: 1 },
@@ -23,4 +25,3 @@ describe("cache", () => {
     expect(k1).toBe(k2);
   });
 });
-

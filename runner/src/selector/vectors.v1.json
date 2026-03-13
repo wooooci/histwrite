@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "selectorContractVersion": 1,
+  "cases": [
+    {
+      "id": "position_verified_crlf_norm_hint",
+      "rawTextB64": "YQ0KYg==",
+      "selector": {
+        "quote": { "type": "TextQuoteSelector", "layer": "normText", "exact": "a\nb" },
+        "positionHint": { "type": "TextPositionHint", "layer": "normText", "start": 0, "end": 3, "unit": "utf16_code_unit" }
+      },
+      "expect": { "method": "position_verified" }
+    },
+    {
+      "id": "quote_anchored_after_bad_hint",
+      "rawTextB64": "YQ0KYg==",
+      "selector": {
+        "quote": { "type": "TextQuoteSelector", "layer": "normText", "exact": "a\nb" },
+        "positionHint": { "type": "TextPositionHint", "layer": "normText", "start": 0, "end": 2, "unit": "utf16_code_unit" }
+      },
+      "expect": { "method": "quote_anchored" }
+    },
+    {
+      "id": "ambiguous_without_context",
+      "rawTextB64": "eHggYWJjIHl5IGFiYyB6eg==",
+      "selector": {
+        "quote": { "type": "TextQuoteSelector", "layer": "normText", "exact": "abc" }
+      },
+      "expect": { "method": "quote_anchored_ambiguous" }
+    },
+    {
+      "id": "disambiguate_with_prefix_suffix",
+      "rawTextB64": "eHggYWJjIHl5IGFiYyB6eg==",
+      "selector": {
+        "quote": { "type": "TextQuoteSelector", "layer": "normText", "exact": "abc", "prefix": "yy ", "suffix": " zz" }
+      },
+      "expect": { "method": "quote_anchored" }
+    },
+    {
+      "id": "unresolvable_quote_missing",
+      "rawTextB64": "aGVsbG8=",
+      "selector": {
+        "quote": { "type": "TextQuoteSelector", "layer": "normText", "exact": "world" }
+      },
+      "expect": { "method": "unresolvable" }
+    },
+    {
+      "id": "unicode_emoji_span",
+      "rawTextB64": "cHJl8J+YgHBvc3Q=",
+      "selector": {
+        "quote": { "type": "TextQuoteSelector", "layer": "normText", "exact": "😀" }
+      },
+      "expect": { "method": "quote_anchored" }
+    }
+  ]
+}
+

@@ -43,7 +43,11 @@ function createHistwriteTool(api: ClawdbotPluginApi, ctx: ClawdbotPluginToolCont
           "示例：",
           "- project init --project demo",
           "- index --project demo --materials demo/材料",
-          "- capture --project demo --relay http://127.0.0.1:18792",
+          "- sources matrix --project demo",
+          "- sources platform-plan --project demo",
+          "- sources download --project demo --platform cnki --mode zotero_only --dry-run",
+          "- scan jstor --project demo --base-term \"Walter Lippmann\" --term-2 \"public opinion\" --max-items 3",
+          "- capture --project demo --relay http://127.0.0.1:18992",
           "- export --project demo",
         ].join("\n");
         return { content: [{ type: "text", text: help }], details: { ok: true, help: true } };

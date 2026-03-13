@@ -27,9 +27,9 @@ export type CaptureSnapshotResult = {
   capturedAt: string;
 };
 
-function normalizeBaseUrl(raw: string): string {
+export function normalizeRelayBaseUrl(raw: string): string {
   const base = raw.trim().replace(/\/+$/, "");
-  if (!base) return "http://127.0.0.1:18792";
+  if (!base) return "http://127.0.0.1:18992";
   return base;
 }
 
@@ -42,7 +42,7 @@ export async function captureRelaySnapshot(params: {
   maxChars?: number;
   outDir?: string;
 }): Promise<CaptureSnapshotResult> {
-  const relayBaseUrl = normalizeBaseUrl(params.relayBaseUrl ?? "http://127.0.0.1:18792");
+  const relayBaseUrl = normalizeRelayBaseUrl(params.relayBaseUrl ?? "http://127.0.0.1:18992");
   const includePng = params.includePng !== false;
   const includeText = params.includeText !== false;
   const maxChars = Math.max(0, Math.min(2_000_000, params.maxChars ?? 200_000));
@@ -99,4 +99,3 @@ export async function captureRelaySnapshot(params: {
 
   return { id, metaPath, textPath, pngPath, tab: { targetId, title, url: pageUrl }, capturedAt };
 }
-

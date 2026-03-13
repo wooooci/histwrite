@@ -1,4 +1,4 @@
-const DEFAULT_PORT = 18792
+const DEFAULT_PORT = 18992
 const DEFAULT_AUTO_CONNECT = true
 const AUTO_CONNECT_ALARM = 'cb-auto-connect'
 
@@ -438,6 +438,12 @@ async function handleForwardCdpCommand(msg) {
       ? { ...debuggee, sessionId }
       : debuggee
 
+  if (method === 'Page.navigate' || method === 'Page.reload') {
+    const result = await chrome.debugger.sendCommand(debuggerSession, method, params)
+    scheduleTargetInfoRefresh(tabId)
+    return result
+  }
+
   return await chrome.debugger.sendCommand(debuggerSession, method, params)
 }
 
@@ -465,6 +471,14 @@ async function refreshTargetInfo(tabId) {
     // ignore
   } finally {
     targetInfoRefreshInFlight.delete(tabId)
+  }
+}
+
+function scheduleTargetInfoRefresh(tabId, delays = [0, 250, 1000, 3000]) {
+  for (const delay of delays) {
+    setTimeout(() => {
+      void refreshTargetInfo(tabId)
+    }, delay)
   }
 }
 

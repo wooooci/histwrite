@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import { describe, expect, it } from "vitest";
@@ -15,7 +16,7 @@ describe("histwrite runner cli project status", () => {
     const { stdout } = await execFileAsync(process.execPath, [
       "--import",
       "tsx",
-      path.resolve("runner/src/cli.ts"),
+      fileURLToPath(new URL("./cli.ts", import.meta.url)),
       "project",
       "status",
       "--project",
